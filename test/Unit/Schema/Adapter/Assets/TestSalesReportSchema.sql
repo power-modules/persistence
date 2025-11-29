@@ -1,0 +1,3 @@
+CREATE TABLE "sales_report" ("id" BIGINT NOT NULL AUTO_INCREMENT, "order_number" VARCHAR(255) NOT NULL DEFAULT '', "order_charged_date" DATE NOT NULL DEFAULT '1970-01-01 00:00:01', "order_charged_timestamp" TIMESTAMP NOT NULL DEFAULT '1970-01-01 00:00:01', "product_id" VARCHAR(255) NOT NULL DEFAULT '', "item_price" DECIMAL(12, 2) NOT NULL DEFAULT '0', "country_of_buyer" VARCHAR(255) NULL DEFAULT NULL, PRIMARY KEY ("id"), FOREIGN KEY ("product_id") REFERENCES "product"("id"), FOREIGN KEY ("country_of_buyer") REFERENCES "country"("code"));
+CREATE INDEX "idx_sales_report_1428098945" ON "sales_report"("order_number");
+CREATE INDEX "idx_sales_report_22861062" ON "sales_report"("order_charged_date", "country_of_buyer");

@@ -1,0 +1,1 @@
+CREATE TABLE "orders" ("id" BIGINT NOT NULL AUTO_INCREMENT, "user_id" VARCHAR(255) NOT NULL, "product_id" VARCHAR(255) NOT NULL, PRIMARY KEY ("id"), FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id"), FOREIGN KEY ("product_id") REFERENCES "products"("id"));

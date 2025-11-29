@@ -1,0 +1,40 @@
+{
+    "$schema": "https://getcomposer.org/schema.json",
+    "name": "power-modules/persistence",
+    "description": "Persistence module for Power Modules framework.",
+    "type": "library",
+    "keywords": [
+        "modular",
+        "framework",
+        "power-modules",
+        "persistence"
+    ],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Evgenii T",
+            "email": "roundcubez@gmail.com",
+            "role": "Owner"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Modular\\Persistence\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modular\\Persistence\\Test\\": "test/"
+        }
+    },
+    "require": {
+        "php": "^8.4",
+        "power-modules/framework": "^2.1",
+        "ramsey/uuid": "^4.9"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^12.3",
+        "friendsofphp/php-cs-fixer": "^3.87",
+        "phpstan/phpstan": "^2.1"
+    }
+}

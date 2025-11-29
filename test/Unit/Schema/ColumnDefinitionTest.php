@@ -1,0 +1,22 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Modular\Persistence\Test\Unit\Schema;
+
+use Modular\Persistence\Schema\ColumnDefinition;
+use Modular\Persistence\Test\Unit\Repository\Fixture\Schema;
+use PHPUnit\Framework\TestCase;
+
+final class ColumnDefinitionTest extends TestCase
+{
+    public function testWithName(): void
+    {
+        $columnDefinition = ColumnDefinition::varchar(Schema::Id, 255);
+        $columnDefinitionWithNewName = $columnDefinition->withName(Schema::Name);
+
+        self::assertNotSame($columnDefinition, $columnDefinitionWithNewName);
+        self::assertSame($columnDefinition->name, 'id');
+        self::assertSame($columnDefinitionWithNewName->name, 'name');
+    }
+}

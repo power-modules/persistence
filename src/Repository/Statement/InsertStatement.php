@@ -1,0 +1,70 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Modular\Persistence\Repository\Statement;
+
+class InsertStatement implements IInsertStatement
+{
+    use TStatementHasParams;
+
+    /**
+     * @var array<Bind>
+     */
+    private array $insertBinds = [];
+
+    /**
+     * @var array<string>
+     */
+    private array $placeholders = [];
+
+    private int $idx = 0;
+    private string $onConflict = '';
+
+    /**
+     * @param array<string> $columns
+     */
+    public function __construct(
+        string $tableName,
+        array $columns,
+        string $namespace = '',
+    ) {
+        if ($namespace === '') {
+            $this->statement = sprintf('INSERT INTO "%s" ("%s") VALUES', $tableName, implode('", "', $columns));
+        } else {
+            $this->statement = sprintf('INSERT INTO "%s"."%s" ("%s") VALUES', $namespace, $tableName, implode('", "', $columns));
+        }
+    }
+
+    public function getQuery(): string
+    {
+        return sprintf('%s %s%s', $this->statement, implode(', ', $this->placeholders), $this->onConflict);
+    }
+
+    /**
+     * @param array<string,mixed> $data
+     */
+    public function prepareBinds(array $data): static
+    {
+        $values = [];
+
+        foreach ($data as $column => $value) {
+            $this->insertBinds[] = $bind = $this->makeBind($column, $value, 'i_' . $this->idx++);
+            $values[] = $bind->name;
+        }
+
+        $this->placeholders[] = sprintf('(%s)', implode(',', $values));
+
+        return $this;
+    }
+
+    public function getInsertBinds(): array
+    {
+        return $this->insertBinds;
+    }
+
+    public function ignoreDuplicates(): void
+    {
+        $this->onConflict = sprintf(' ON CONFLICT DO NOTHING');
+    }
+}
