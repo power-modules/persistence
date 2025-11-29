@@ -50,7 +50,7 @@ final class GenerateSchemaCommandTest extends TestCase
         self::assertFileExists($this->generatedFile);
         self::assertStringEqualsFile($this->generatedFile, "CREATE TABLE ...;\nALTER TABLE ...;");
 
-        $output = $tester->getDisplay();
+        $output = (string) preg_replace('/\s+/', ' ', $tester->getDisplay());
         self::assertStringContainsString(sprintf('Generated SQL for "%s"', Schema::class), $output);
         self::assertStringContainsString($this->generatedFile, $output);
     }
@@ -66,7 +66,8 @@ final class GenerateSchemaCommandTest extends TestCase
         ]);
 
         self::assertSame(1, $tester->getStatusCode());
-        self::assertStringContainsString('Class "NonExistentClass" does not exist.', $tester->getDisplay());
+        $output = (string) preg_replace('/\s+/', ' ', $tester->getDisplay());
+        self::assertStringContainsString('Class "NonExistentClass" does not exist.', $output);
     }
 
     public function testExecuteWithInvalidClass(): void
@@ -80,7 +81,7 @@ final class GenerateSchemaCommandTest extends TestCase
         ]);
 
         self::assertSame(1, $tester->getStatusCode());
-        $output = $tester->getDisplay();
+        $output = (string) preg_replace('/\s+/', ' ', $tester->getDisplay());
         self::assertStringContainsString('Class "Modular\Persistence\Test\Unit\Console\GenerateSchemaCommandTest" must implement', $output);
         self::assertStringContainsString('"Modular\Persistence\Schema\ISchema".', $output);
     }
