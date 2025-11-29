@@ -7,7 +7,6 @@ namespace Modular\Persistence\Test\Integration;
 use Modular\Framework\App\Config\Config;
 use Modular\Framework\App\Config\Setting;
 use Modular\Framework\App\ModularAppBuilder;
-use Modular\Framework\App\ModularAppFactory;
 use Modular\Persistence\DatabaseConnectionFactory;
 use Modular\Persistence\IDatabase;
 use Modular\Persistence\PersistenceModule;
