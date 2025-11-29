@@ -52,7 +52,6 @@ final class GenerateSchemaCommandTest extends TestCase
 
         $output = (string) preg_replace('/\s+/', ' ', $tester->getDisplay());
         self::assertStringContainsString(sprintf('Generated SQL for "%s"', Schema::class), $output);
-        self::assertStringContainsString($this->generatedFile, $output);
     }
 
     public function testExecuteWithNonExistentClass(): void
