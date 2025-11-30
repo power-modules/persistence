@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Modular\Persistence\Console;
 
-use Modular\Persistence\Schema\ISchema;
-use Modular\Persistence\Schema\ISchemaQueryGenerator;
+use Modular\Persistence\Schema\Contract\ISchema;
+use Modular\Persistence\Schema\Contract\ISchemaQueryGenerator;
 use ReflectionClass;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;

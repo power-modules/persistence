@@ -12,7 +12,7 @@ use Modular\Persistence\Repository\Statement\Contract\ISelectStatement;
 use Modular\Persistence\Repository\Statement\Contract\IStatementFactory;
 use Modular\Persistence\Repository\Statement\Contract\IUpdateStatement;
 use Modular\Persistence\Repository\Statement\Factory\GenericStatementFactory;
-use Modular\Persistence\Schema\IHydrator;
+use Modular\Persistence\Schema\Contract\IHydrator;
 use PDOException;
 use Throwable;
 
@@ -68,33 +68,35 @@ abstract class AbstractGenericRepository
             ->getSelectStatement()
             ->addCondition(...$condition)
         ;
-        $statement = $this->database->prepare($selectStatement->all());
 
-        foreach ($selectStatement->getWhereBinds() as $whereBind) {
-            if ($whereBind->value === null) {
-                continue;
-            }
+        $selectStatement->all();
 
-            $statement->bindValue($whereBind->name, $whereBind->value, $whereBind->type);
+        $rows = $this->select($selectStatement);
+
+        return array_map(fn ($row) => $this->hydrator->hydrate($row), $rows);
+    }
+
+    /**
+     * @return null|T
+     * @throws PDOException
+     * @throws PreparedStatementException
+     */
+    public function findOne(Condition ...$condition): mixed
+    {
+        $selectStatement = $this
+            ->getSelectStatement()
+            ->addCondition(...$condition)
+        ;
+
+        $selectStatement->one();
+
+        $rows = $this->select($selectStatement);
+
+        if (count($rows) === 0) {
+            return null;
         }
 
-        if ($statement->execute() === false) {
-            throw new PreparedStatementException();
-        }
-
-        $models = [];
-
-        do {
-            $row = $statement->fetch();
-
-            if ($row === false) {
-                break;
-            }
-
-            $models[] = $this->hydrator->hydrate($row);
-        } while (true);
-
-        return $models;
+        return $this->hydrator->hydrate($rows[0]);
     }
 
     /**
