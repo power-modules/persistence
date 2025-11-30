@@ -81,12 +81,12 @@ class UserHydrator implements IHydrator
         );
     }
 
-    public function dehydrate(object $entity): array
+    public function dehydrate(mixed $entity): array
     {
         return [
             'email' => $entity->email,
             'name' => $entity->name,
-            'created_at' => $entity->createdAt->format('Y-m-d H:i:s'),
+            'created_at' => $entity->createdAt->format('Y-m-d H:i:sP'),
         ];
     }
 }

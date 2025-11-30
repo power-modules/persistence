@@ -69,7 +69,7 @@ class UserHydrator implements IHydrator {
         return new User((int)$row['id'], $row['email']);
     }
     
-    public function dehydrate(object $entity): array {
+    public function dehydrate(mixed $entity): array {
         return ['email' => $entity->email];
     }
 }
