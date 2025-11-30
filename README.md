@@ -40,15 +40,10 @@ enum UserSchema implements ISchema
         return 'users';
     }
 
-    public static function getPrimaryKey(): array
-    {
-        return ['id'];
-    }
-
     public function getColumnDefinition(): ColumnDefinition
     {
         return match ($this) {
-            self::Id => ColumnDefinition::uuid($this),
+            self::Id => ColumnDefinition::uuid($this)->primaryKey(),
             self::Email => ColumnDefinition::varchar($this),
             self::Status => ColumnDefinition::varchar($this, length: 50),
             self::CreatedAt => ColumnDefinition::timestamptz($this, nullable: false),

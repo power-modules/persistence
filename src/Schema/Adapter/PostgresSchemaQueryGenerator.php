@@ -73,11 +73,18 @@ final readonly class PostgresSchemaQueryGenerator implements ISchemaQueryGenerat
 
     private function getCreateTableQuery(ISchema $schema, string $tableName): string
     {
+        $primaryKeys = [];
+        foreach ($schema::cases() as $column) {
+            if ($column->getColumnDefinition()->isPrimaryKey) {
+                $primaryKeys[] = $column->getColumnDefinition()->name;
+            }
+        }
+
         $createTableQuery = sprintf(
             'CREATE TABLE "%s" (%s, PRIMARY KEY ("%s")',
             $tableName,
             implode(', ', $this->getColumnsDefinition($schema)),
-            implode('", "', $schema::getPrimaryKey()),
+            implode('", "', $primaryKeys),
         );
 
         if ($schema instanceof IHasForeignKeys) {

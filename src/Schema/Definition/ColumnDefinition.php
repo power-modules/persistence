@@ -16,7 +16,22 @@ final readonly class ColumnDefinition
         public int $precision = 0,
         public int $scale = 0,
         public bool $isAutoincrement = false,
+        public bool $isPrimaryKey = false,
     ) {
+    }
+
+    public function primaryKey(): self
+    {
+        return new self(
+            $this->name,
+            $this->columnType,
+            $this->default,
+            $this->nullable,
+            $this->precision,
+            $this->scale,
+            $this->isAutoincrement,
+            true,
+        );
     }
 
     public static function autoincrement(
@@ -148,6 +163,8 @@ final readonly class ColumnDefinition
             $this->nullable,
             $this->precision,
             $this->scale,
+            false,
+            false,
         );
     }
 }

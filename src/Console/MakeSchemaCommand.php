@@ -98,15 +98,10 @@ enum {$className}: string implements ISchema
         return '{$tableName}';
     }
 
-    public static function getPrimaryKey(): array
-    {
-        return [self::Id->value];
-    }
-
     public function getColumnDefinition(): ColumnDefinition
     {
         return match (\$this) {
-            self::Id => ColumnDefinition::uuid(\$this),
+            self::Id => ColumnDefinition::uuid(\$this)->primaryKey(),
             // self::CreatedAt => ColumnDefinition::timestamptz(\$this),
         };
     }

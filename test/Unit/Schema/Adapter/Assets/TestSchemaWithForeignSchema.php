@@ -20,17 +20,10 @@ enum TestSchemaWithForeignSchema: string implements ISchema, IHasForeignKeys
         return 'orders';
     }
 
-    public static function getPrimaryKey(): array
-    {
-        return [
-            self::Id->value,
-        ];
-    }
-
     public function getColumnDefinition(): ColumnDefinition
     {
         return match ($this) {
-            self::Id => ColumnDefinition::autoincrement(self::Id),
+            self::Id => ColumnDefinition::autoincrement(self::Id)->primaryKey(),
             self::UserId => ColumnDefinition::varchar(self::UserId, 255, false),
             self::ProductId => ColumnDefinition::varchar(self::ProductId, 255, false),
         };

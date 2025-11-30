@@ -26,17 +26,10 @@ enum TestSalesReportSchema: string implements ISchema, IHasIndexes, IHasForeignK
         return 'sales_report';
     }
 
-    public static function getPrimaryKey(): array
-    {
-        return [
-            self::Id->value,
-        ];
-    }
-
     public function getColumnDefinition(): ColumnDefinition
     {
         return match ($this) {
-            self::Id => ColumnDefinition::autoincrement(self::Id),
+            self::Id => ColumnDefinition::autoincrement(self::Id)->primaryKey(),
             self::OrderNumber => ColumnDefinition::varchar(self::OrderNumber, 255, false, ''),
             self::OrderChargedDate => ColumnDefinition::date(self::OrderChargedDate, false),
             self::OrderChargedTimestamp => ColumnDefinition::timestamptz(self::OrderChargedTimestamp, false),

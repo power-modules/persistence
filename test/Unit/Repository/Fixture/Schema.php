@@ -19,17 +19,10 @@ enum Schema: string implements ISchema
         return 'employee';
     }
 
-    public static function getPrimaryKey(): array
-    {
-        return [
-            self::Id->value,
-        ];
-    }
-
     public function getColumnDefinition(): ColumnDefinition
     {
         return match ($this) {
-            self::Id => ColumnDefinition::autoincrement(self::Id),
+            self::Id => ColumnDefinition::autoincrement(self::Id)->primaryKey(),
             self::Name => ColumnDefinition::varchar(self::Name, 255, false),
             self::CreatedAt => ColumnDefinition::timestamptz(self::CreatedAt, false),
             self::DeletedAt => ColumnDefinition::timestamptz(self::DeletedAt, true, null),

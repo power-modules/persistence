@@ -21,15 +21,10 @@ enum TestUserSchema: string implements ISchema
         return 'users';
     }
 
-    public static function getPrimaryKey(): array
-    {
-        return [self::Id->value];
-    }
-
     public function getColumnDefinition(): ColumnDefinition
     {
         return match ($this) {
-            self::Id => ColumnDefinition::uuid($this),
+            self::Id => ColumnDefinition::uuid($this)->primaryKey(),
             self::Name => ColumnDefinition::varchar($this),
             self::Email => ColumnDefinition::varchar($this),
             self::Age => ColumnDefinition::int($this, length: 11, nullable: true),

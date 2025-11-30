@@ -12,11 +12,6 @@ interface ISchema
     public static function getTableName(): string;
 
     /**
-     * @return array<string>
-     */
-    public static function getPrimaryKey(): array;
-
-    /**
      * @return array<self>
      */
     public static function cases(): array;
