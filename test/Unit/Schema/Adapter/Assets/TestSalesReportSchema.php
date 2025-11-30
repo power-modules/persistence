@@ -39,7 +39,7 @@ enum TestSalesReportSchema: string implements ISchema, IHasIndexes, IHasForeignK
             self::Id => ColumnDefinition::autoincrement(self::Id),
             self::OrderNumber => ColumnDefinition::varchar(self::OrderNumber, 255, false, ''),
             self::OrderChargedDate => ColumnDefinition::date(self::OrderChargedDate, false),
-            self::OrderChargedTimestamp => ColumnDefinition::timestamp(self::OrderChargedTimestamp, false),
+            self::OrderChargedTimestamp => ColumnDefinition::timestamptz(self::OrderChargedTimestamp, false),
             self::ProductId => ColumnDefinition::varchar(self::ProductId, 255, false, ''),
             self::ItemPrice => ColumnDefinition::decimal(self::ItemPrice, 12, 2, false, 0),
             self::CountryOfBuyer => ColumnDefinition::varchar(self::CountryOfBuyer),

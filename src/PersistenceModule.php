@@ -11,6 +11,11 @@ use Modular\Framework\PowerModule\Contract\ExportsComponents;
 use Modular\Framework\PowerModule\Contract\PowerModule;
 use Modular\Persistence\Config\Config;
 use Modular\Persistence\Console\GenerateSchemaCommand;
+use Modular\Persistence\Console\MakeEntityCommand;
+use Modular\Persistence\Console\MakeHydratorCommand;
+use Modular\Persistence\Console\MakeRepositoryCommand;
+use Modular\Persistence\Console\MakeSchemaCommand;
+use Modular\Persistence\Console\ScaffoldCommand;
 use Modular\Persistence\Database\Database;
 use Modular\Persistence\Database\DatabaseConnectionFactory;
 use Modular\Persistence\Database\IDatabase;
@@ -36,6 +41,11 @@ class PersistenceModule implements PowerModule, HasConfig, ExportsComponents
             IDatabase::class,
             IPostgresDatabase::class,
             GenerateSchemaCommand::class,
+            MakeSchemaCommand::class,
+            MakeEntityCommand::class,
+            MakeHydratorCommand::class,
+            MakeRepositoryCommand::class,
+            ScaffoldCommand::class,
         ];
     }
 

@@ -156,6 +156,7 @@ class AbstractGenericRepositoryTest extends TestCase
         $schemaQueryGenerator = new PostgresSchemaQueryGenerator();
 
         foreach ($schemaQueryGenerator->generate(Schema::Id) as $query) {
+            $query = str_replace(' AUTO_INCREMENT', '', $query);
             $pdo->query($query);
         }
 

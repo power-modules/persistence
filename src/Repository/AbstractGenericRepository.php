@@ -17,16 +17,16 @@ use PDOException;
 use Throwable;
 
 /**
- * @template T
+ * @template TModel
  */
 abstract class AbstractGenericRepository
 {
     /**
-     * @param IHydrator<T> $hydrator
+     * @param IHydrator<TModel> $hydrator
      */
     public function __construct(
         protected readonly IDatabase $database,
-        public readonly IHydrator $hydrator,
+        protected readonly IHydrator $hydrator,
         protected readonly IStatementFactory $statementFactory = new GenericStatementFactory(),
     ) {
     }
@@ -58,7 +58,7 @@ abstract class AbstractGenericRepository
     }
 
     /**
-     * @return array<int,T>
+     * @return array<int,TModel>
      * @throws PDOException
      * @throws PreparedStatementException
      */
@@ -77,7 +77,7 @@ abstract class AbstractGenericRepository
     }
 
     /**
-     * @return null|T
+     * @return null|TModel
      * @throws PDOException
      * @throws PreparedStatementException
      */
@@ -100,7 +100,7 @@ abstract class AbstractGenericRepository
     }
 
     /**
-     * @return null|T
+     * @return null|TModel
      */
     public function getOne(int|string $id): mixed
     {
@@ -141,7 +141,7 @@ abstract class AbstractGenericRepository
     }
 
     /**
-     * @param T $entity
+     * @param TModel $entity
      */
     public function updateOne($entity): int
     {
@@ -158,14 +158,14 @@ abstract class AbstractGenericRepository
     }
 
     /**
-     * @param array<T> $entities
+     * @param array<TModel> $entities
      */
     public function insertMany(array $entities): int
     {
         $insertInTransaction = $this->database->inTransaction() === false;
 
         /**
-         * @var array<array<T>>
+         * @var array<array<TModel>>
          */
         $chunks = array_chunk($entities, 100);
 
@@ -204,7 +204,7 @@ abstract class AbstractGenericRepository
     }
 
     /**
-     * @param T $entity
+     * @param TModel $entity
      */
     public function insertOne($entity): int
     {
@@ -293,7 +293,7 @@ abstract class AbstractGenericRepository
     }
 
     /**
-     * @param T $entity
+     * @param TModel $entity
      */
     public function save($entity): int
     {

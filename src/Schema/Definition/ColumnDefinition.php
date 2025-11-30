@@ -131,6 +131,14 @@ final readonly class ColumnDefinition
         return new self((string)$name->value, ColumnType::Varchar, $default, $nullable, $length);
     }
 
+    public static function timestamptz(
+        BackedEnum $name,
+        bool $nullable = false,
+        ?string $default = '1970-01-01 00:00:01',
+    ): self {
+        return new self((string)$name->value, ColumnType::TimestampTz, $default, $nullable);
+    }
+
     public function withName(BackedEnum $name): ColumnDefinition
     {
         return new self(

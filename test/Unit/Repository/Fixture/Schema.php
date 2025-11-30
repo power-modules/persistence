@@ -29,10 +29,10 @@ enum Schema: string implements ISchema
     public function getColumnDefinition(): ColumnDefinition
     {
         return match ($this) {
-            self::Id => ColumnDefinition::varchar(self::Id, 36, false),
+            self::Id => ColumnDefinition::autoincrement(self::Id),
             self::Name => ColumnDefinition::varchar(self::Name, 255, false),
-            self::CreatedAt => ColumnDefinition::timestamp(self::CreatedAt, false),
-            self::DeletedAt => ColumnDefinition::timestamp(self::DeletedAt, true, null),
+            self::CreatedAt => ColumnDefinition::timestamptz(self::CreatedAt, false),
+            self::DeletedAt => ColumnDefinition::timestamptz(self::DeletedAt, true, null),
         };
     }
 }

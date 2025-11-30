@@ -48,10 +48,10 @@ enum UserSchema implements ISchema
     public function getColumnDefinition(): ColumnDefinition
     {
         return match ($this) {
-            self::Id => ColumnDefinition::autoincrement($this),
-            self::Email => ColumnDefinition::varchar($this, 255, nullable: false),
-            self::Name => ColumnDefinition::varchar($this, 100),
-            self::CreatedAt => ColumnDefinition::timestamp($this, nullable: false),
+            self::Id => ColumnDefinition::uuid($this),
+            self::Email => ColumnDefinition::varchar($this),
+            self::Status => ColumnDefinition::varchar($this, length: 50),
+            self::CreatedAt => ColumnDefinition::timestamptz($this, nullable: false),
         };
     }
 }

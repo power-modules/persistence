@@ -24,7 +24,7 @@ interface IHydrator
     /**
      * @param TModel $entity
      */
-    public function getId(mixed $entity): int|string;
+    public function getId(mixed $entity): int|string|null;
 
     public function getIdFieldName(): string;
 }

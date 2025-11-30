@@ -6,7 +6,7 @@ namespace Modular\Persistence\Schema;
 
 trait TStandardIdentity
 {
-    public function getId(object $entity): int|string|null
+    public function getId(mixed $entity): int|string|null
     {
         return $entity->id ?? null;
     }
