@@ -25,7 +25,8 @@ composer require modular/persistence
 ```php
 <?php
 
-use Modular\Persistence\Schema\{ISchema, ColumnDefinition, ColumnType};
+use Modular\Persistence\Schema\Contract\ISchema;
+use Modular\Persistence\Schema\Definition\{ColumnDefinition, ColumnType};
 
 enum UserSchema implements ISchema
 {
@@ -56,7 +57,42 @@ enum UserSchema implements ISchema
 }
 ```
 
-### 2. Create a Repository
+### 2. Create a Hydrator
+
+The Hydrator is responsible for mapping database rows to objects and extracting data for persistence. It is also the source of truth for entity identity.
+
+```php
+<?php
+
+use Modular\Persistence\Schema\Contract\IHydrator;
+use Modular\Persistence\Schema\TStandardIdentity;
+
+class UserHydrator implements IHydrator
+{
+    use TStandardIdentity; // Provides default getId() and getIdFieldName() implementation
+
+    public function hydrate(array $row): User
+    {
+        return new User(
+            (int)$row['id'],
+            $row['email'],
+            $row['name'],
+            new DateTimeImmutable($row['created_at'])
+        );
+    }
+
+    public function dehydrate(object $entity): array
+    {
+        return [
+            'email' => $entity->email,
+            'name' => $entity->name,
+            'created_at' => $entity->createdAt->format('Y-m-d H:i:s'),
+        ];
+    }
+}
+```
+
+### 3. Create a Repository
 
 ```php
 <?php
@@ -67,9 +103,9 @@ class UserRepository extends AbstractGenericRepository
 {
     public function findByEmail(string $email): ?User
     {
-        return $this->getMany(
+        return $this->findOne(
             Condition::equals(UserSchema::Email, $email)
-        )[0] ?? null;
+        );
     }
 
     public function findActiveUsers(): array
@@ -81,7 +117,7 @@ class UserRepository extends AbstractGenericRepository
 }
 ```
 
-### 3. Configure the Module
+### 4. Configure the Module
 
 ```php
 <?php
@@ -100,29 +136,54 @@ return Config::create()
     ]);
 ```
 
-### 4. Register and Use
+### 5. Register and Use
 
 ```php
 <?php
 
 use Modular\Framework\App\ModularAppFactory;
 use Modular\Persistence\PersistenceModule;
+use Modular\Persistence\Repository\Statement\Factory\GenericStatementFactory;
 
 $app = ModularAppFactory::create();
 $app->registerModules([PersistenceModule::class]);
 
+// Standard setup
 $userRepository = new UserRepository(
     $app->get(IDatabase::class),
-    new UserHydrator()
+    new UserHydrator(),
+    new GenericStatementFactory() // Optional, defaults to GenericStatementFactory
 );
 
 // Create a new user
-$user = new User('john@example.com', 'John Doe');
-$userRepository->insertOne($user);
+$user = new User(null, 'john@example.com', 'John Doe', new DateTimeImmutable());
+$userRepository->save($user); // Automatically handles insert vs update
 
 // Find users
 $user = $userRepository->findByEmail('john@example.com');
 $activeUsers = $userRepository->findActiveUsers();
+```
+
+## Multi-Tenancy Support
+
+The library supports multi-tenancy via Postgres schemas (namespaces). You can switch the schema context at runtime without re-instantiating your repositories.
+
+```php
+use Modular\Persistence\Repository\Statement\Provider\RuntimeNamespaceProvider;
+use Modular\Persistence\Repository\Statement\Factory\GenericStatementFactory;
+
+// 1. Setup the provider and factory
+$namespaceProvider = new RuntimeNamespaceProvider();
+$statementFactory = new GenericStatementFactory($namespaceProvider);
+
+// 2. Inject into your repository
+$userRepository = new UserRepository($database, $hydrator, $statementFactory);
+
+// 3. Switch context at runtime (e.g., in a middleware)
+$namespaceProvider->setNamespace('tenant_123');
+
+// 4. Execute queries - they will target "tenant_123"."users"
+$users = $userRepository->findAll();
 ```
 
 ## Key Concepts
@@ -174,6 +235,8 @@ $users = $this->select($selectStatement);
 Generate database tables from your enums:
 
 ```php
+use Modular\Persistence\Schema\Adapter\PostgresSchemaQueryGenerator;
+
 $generator = new PostgresSchemaQueryGenerator();
 
 foreach ($generator->generate(UserSchema::class) as $query) {
@@ -187,7 +250,8 @@ foreach ($generator->generate(UserSchema::class) as $query) {
 Define foreign key relationships in your schema enums:
 
 ```php
-use Modular\Persistence\Schema\{ISchema, IHasForeignKeys, ForeignKey};
+use Modular\Persistence\Schema\Contract\{ISchema, IHasForeignKeys};
+use Modular\Persistence\Schema\Definition\ForeignKey;
 
 enum OrderSchema implements ISchema, IHasForeignKeys
 {
