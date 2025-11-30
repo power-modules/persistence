@@ -88,7 +88,6 @@ final class MakeRepositoryCommand extends Command
     {
         $hydratorImport = '';
         $hydratorType = 'IHydrator';
-        $hydratorParam = 'IHydrator $hydrator';
         $entityName = 'object'; // Default if we can't guess
         $entityImport = '';
         $schemaImport = '';
@@ -122,7 +121,6 @@ final class MakeRepositoryCommand extends Command
                 $hydratorImport = "use App\\Hydrator\\{$hydratorClass};\n";
             }
             $hydratorType = $hydratorShortName;
-            $hydratorParam = "{$hydratorShortName} \$hydrator";
 
             // Try to guess Entity name from Hydrator name (UserHydrator -> User)
             if (str_ends_with($hydratorShortName, 'Hydrator')) {
@@ -132,7 +130,6 @@ final class MakeRepositoryCommand extends Command
         } else {
             $hydratorImport = "use Modular\Persistence\Schema\Contract\IHydrator;\n";
             $hydratorType = 'IHydrator';
-            $hydratorParam = 'IHydrator $hydrator';
         }
 
         $imports = [
