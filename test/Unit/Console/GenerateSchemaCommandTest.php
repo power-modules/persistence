@@ -42,7 +42,33 @@ final class GenerateSchemaCommandTest extends TestCase
         $tester = new CommandTester($command);
 
         $tester->execute([
-            'schema-class' => Schema::class,
+            'target' => Schema::class,
+        ]);
+
+        $tester->assertCommandIsSuccessful();
+
+        self::assertFileExists($this->generatedFile);
+        self::assertStringEqualsFile($this->generatedFile, "CREATE TABLE ...;\nALTER TABLE ...;");
+
+        $output = (string) preg_replace('/\s+/', ' ', $tester->getDisplay());
+        self::assertStringContainsString(sprintf('Generated SQL for "%s"', Schema::class), $output);
+    }
+
+    public function testExecuteWithDirectory(): void
+    {
+        $queryGenerator = $this->createMock(ISchemaQueryGenerator::class);
+        $queryGenerator->expects(self::once())
+            ->method('generate')
+            ->with(Schema::Id)
+            ->willReturn($this->generateQueries());
+
+        $command = new GenerateSchemaCommand($queryGenerator);
+        $tester = new CommandTester($command);
+
+        $directory = realpath(__DIR__ . '/../Repository/Fixture');
+
+        $tester->execute([
+            'target' => $directory,
         ]);
 
         $tester->assertCommandIsSuccessful();
@@ -61,12 +87,12 @@ final class GenerateSchemaCommandTest extends TestCase
         $tester = new CommandTester($command);
 
         $tester->execute([
-            'schema-class' => 'NonExistentClass',
+            'target' => 'NonExistentClass',
         ]);
 
         self::assertSame(1, $tester->getStatusCode());
         $output = (string) preg_replace('/\s+/', ' ', $tester->getDisplay());
-        self::assertStringContainsString('Class "NonExistentClass" does not exist.', $output);
+        self::assertStringContainsString('Class or directory "NonExistentClass" does not exist.', $output);
     }
 
     public function testExecuteWithInvalidClass(): void
@@ -76,7 +102,7 @@ final class GenerateSchemaCommandTest extends TestCase
         $tester = new CommandTester($command);
 
         $tester->execute([
-            'schema-class' => self::class, // This test class does not implement ISchema
+            'target' => self::class, // This test class does not implement ISchema
         ]);
 
         self::assertSame(1, $tester->getStatusCode());
