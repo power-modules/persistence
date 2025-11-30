@@ -124,7 +124,7 @@ abstract class AbstractGenericRepository
     public function getOne(int|string $id): mixed
     {
         return $this->getMany(
-            new Condition($this->getIdFieldName(), Operator::Equals, $id),
+            new Condition($this->hydrator->getIdFieldName(), Operator::Equals, $id),
         )[0] ?? null;
     }
 
@@ -162,21 +162,17 @@ abstract class AbstractGenericRepository
     /**
      * @param T $entity
      */
-    public function updateOne($entity, int|string $id): int
+    public function updateOne($entity): int
     {
-        $data = [];
+        $data = $this->hydrator->dehydrate($entity);
+        $id = $this->hydrator->getId($entity);
+        $idFieldName = $this->hydrator->getIdFieldName();
 
-        foreach ($this->hydrator->dehydrate($entity) as $column => $value) {
-            if ($column === $this->getIdFieldName()) {
-                continue;
-            }
-
-            $data[$column] = $value;
-        }
+        unset($data[$idFieldName]);
 
         return $this->updateMany(
             $data,
-            new Condition($this->getIdFieldName(), Operator::Equals, $id),
+            new Condition($idFieldName, Operator::Equals, $id),
         );
     }
 
@@ -260,7 +256,7 @@ abstract class AbstractGenericRepository
     public function deleteOne(int|string $id): int
     {
         return $this->deleteMany(
-            new Condition($this->getIdFieldName(), Operator::Equals, $id),
+            new Condition($this->hydrator->getIdFieldName(), Operator::Equals, $id),
         );
     }
 
@@ -315,7 +311,20 @@ abstract class AbstractGenericRepository
         return new DeleteStatement($this->getTableName());
     }
 
-    abstract protected function getIdFieldName(): string;
+    /**
+     * @param T $entity
+     */
+    public function save($entity): int
+    {
+        $id = $this->hydrator->getId($entity);
+        $idFieldName = $this->hydrator->getIdFieldName();
+
+        if ($this->has(new Condition($idFieldName, Operator::Equals, $id))) {
+            return $this->updateOne($entity);
+        }
+
+        return $this->insertOne($entity);
+    }
 
     abstract protected function getTableName(): string;
 }

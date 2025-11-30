@@ -31,4 +31,14 @@ class Hydrator implements IHydrator
             Schema::DeletedAt->value => $entity->deletedAt?->format('Y-m-d H:i:s') ?? null,
         ];
     }
+
+    public function getId(mixed $entity): int|string
+    {
+        return $entity->id;
+    }
+
+    public function getIdFieldName(): string
+    {
+        return Schema::Id->value;
+    }
 }

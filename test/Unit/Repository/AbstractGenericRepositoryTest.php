@@ -66,7 +66,7 @@ class AbstractGenericRepositoryTest extends TestCase
         self::assertNull($johnCoe->deletedAt);
 
         $johnCoe = $johnCoe->withDeletedAt('2025-01-01 00:05:30');
-        $repository->updateOne($johnCoe, $johnCoe->id);
+        $repository->updateOne($johnCoe);
 
         $johnCoe = $repository->getOne($johnCoe->id);
         self::assertNotNull($johnCoe);
@@ -101,6 +101,45 @@ class AbstractGenericRepositoryTest extends TestCase
         self::assertSame(3, $repository->deleteMany(Condition::in(Schema::Name, ['Person 3', 'Person 4', 'Person 5'])));
         self::assertCount(1, $repository->getMany(Condition::notIn(Schema::Name, ['Dick Boe'])));
         self::assertCount(1, $repository->getMany(Condition::notIn(Schema::Name, ['John Zoe'])));
+    }
+
+    public function testSave(): void
+    {
+        $repository = $this->getRepository();
+
+        // Test Insert via Save
+        $employee = new Employee(Uuid::uuid7()->toString(), 'Save Insert', new DateTimeImmutable(), null);
+        self::assertSame(1, $repository->save($employee));
+
+        $savedEmployee = $repository->getOne($employee->id);
+        self::assertNotNull($savedEmployee);
+        self::assertSame('Save Insert', $savedEmployee->name);
+
+        // Test Update via Save
+        $employee = new Employee($employee->id, 'Save Update', $employee->createdAt, $employee->deletedAt);
+        self::assertSame(1, $repository->save($employee));
+
+        $updatedEmployee = $repository->getOne($employee->id);
+        self::assertNotNull($updatedEmployee);
+        self::assertSame('Save Update', $updatedEmployee->name);
+        self::assertSame(1, $repository->getTotal());
+    }
+
+    public function testUpdateOneNonExistent(): void
+    {
+        $repository = $this->getRepository();
+        $employee = new Employee(Uuid::uuid7()->toString(), 'Non Existent', new DateTimeImmutable(), null);
+
+        self::assertSame(0, $repository->updateOne($employee));
+    }
+
+    public function testSaveIdempotency(): void
+    {
+        $repository = $this->getRepository();
+        $employee = new Employee(Uuid::uuid7()->toString(), 'Idempotent', new DateTimeImmutable(), null);
+
+        self::assertSame(1, $repository->save($employee));
+        self::assertSame(1, $repository->save($employee));
     }
 
     private function getRepository(): Repository

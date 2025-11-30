@@ -20,4 +20,11 @@ interface IHydrator
      * @return array<string,mixed>
      */
     public function dehydrate(mixed $entity): array;
+
+    /**
+     * @param TModel $entity
+     */
+    public function getId(mixed $entity): int|string;
+
+    public function getIdFieldName(): string;
 }
