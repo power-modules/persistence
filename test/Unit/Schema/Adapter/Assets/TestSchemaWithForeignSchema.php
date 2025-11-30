@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Modular\Persistence\Test\Unit\Schema\Adapter\Assets;
 
-use Modular\Persistence\Schema\ColumnDefinition;
-use Modular\Persistence\Schema\ForeignKey;
-use Modular\Persistence\Schema\IHasForeignKeys;
-use Modular\Persistence\Schema\ISchema;
+use Modular\Persistence\Schema\Contract\IHasForeignKeys;
+use Modular\Persistence\Schema\Contract\ISchema;
+use Modular\Persistence\Schema\Definition\ColumnDefinition;
+use Modular\Persistence\Schema\Definition\ForeignKey;
 
 enum TestSchemaWithForeignSchema: string implements ISchema, IHasForeignKeys
 {

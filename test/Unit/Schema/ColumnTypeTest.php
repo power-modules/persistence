@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Modular\Persistence\Test\Unit\Schema;
 
-use Modular\Persistence\Schema\ColumnType;
+use Modular\Persistence\Schema\Definition\ColumnType;
 use PHPUnit\Framework\TestCase;
 
 final class ColumnTypeTest extends TestCase

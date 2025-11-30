@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Modular\Persistence\Test\Unit\Schema\Adapter;
 
 use Modular\Persistence\Schema\Adapter\PostgresSchemaQueryGenerator;
-use Modular\Persistence\Schema\ISchema;
+use Modular\Persistence\Schema\Contract\ISchema;
 use Modular\Persistence\Test\Unit\Schema\Adapter\Assets\TestSalesReportSchema;
 use Modular\Persistence\Test\Unit\Schema\Adapter\Assets\TestSchemaWithForeignSchema;
 use PHPUnit\Framework\TestCase;

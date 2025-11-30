@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Modular\Persistence\Schema;
+namespace Modular\Persistence\Schema\Definition;
 
 use BackedEnum;
 use InvalidArgumentException;

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Modular\Persistence\Test\Unit\Repository\Fixture;
 
-use Modular\Persistence\Schema\ColumnDefinition;
-use Modular\Persistence\Schema\ISchema;
+use Modular\Persistence\Schema\Contract\ISchema;
+use Modular\Persistence\Schema\Definition\ColumnDefinition;
 
 enum Schema: string implements ISchema
 {

@@ -90,6 +90,14 @@ class AbstractGenericRepositoryTest extends TestCase
         self::assertCount(1, $result);
         self::assertSame('Person 4', $result[0][Schema::Name->value]);
 
+        // Test findOne
+        $person3 = $repository->findOne(Condition::equals(Schema::Name, 'Person 3'));
+        self::assertNotNull($person3);
+        self::assertSame('Person 3', $person3->name);
+
+        $notFound = $repository->findOne(Condition::equals(Schema::Name, 'Non Existent'));
+        self::assertNull($notFound);
+
         self::assertCount(5, $repository->getMany(Condition::isNull(Schema::DeletedAt)));
         self::assertCount(0, $repository->getMany(Condition::notNull(Schema::DeletedAt)));
 

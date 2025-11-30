@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Modular\Persistence\Test\Unit\Schema;
 
 use InvalidArgumentException;
-use Modular\Persistence\Schema\Index;
+use Modular\Persistence\Schema\Definition\Index;
 use PHPUnit\Framework\TestCase;
 
 final class IndexTest extends TestCase

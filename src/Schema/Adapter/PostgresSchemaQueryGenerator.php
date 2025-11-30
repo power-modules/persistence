@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Modular\Persistence\Schema\Adapter;
 
 use Generator;
-use Modular\Persistence\Schema\ColumnDefinition;
-use Modular\Persistence\Schema\ColumnType;
-use Modular\Persistence\Schema\IHasForeignKeys;
-use Modular\Persistence\Schema\IHasIndexes;
-use Modular\Persistence\Schema\ISchema;
-use Modular\Persistence\Schema\ISchemaQueryGenerator;
+use Modular\Persistence\Schema\Contract\IHasForeignKeys;
+use Modular\Persistence\Schema\Contract\IHasIndexes;
+use Modular\Persistence\Schema\Contract\ISchema;
+use Modular\Persistence\Schema\Contract\ISchemaQueryGenerator;
+use Modular\Persistence\Schema\Definition\ColumnDefinition;
+use Modular\Persistence\Schema\Definition\ColumnType;
 
 final readonly class PostgresSchemaQueryGenerator implements ISchemaQueryGenerator
 {

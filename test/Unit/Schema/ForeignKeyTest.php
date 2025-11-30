@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Modular\Persistence\Test\Unit\Schema;
 
 use InvalidArgumentException;
-use Modular\Persistence\Schema\ForeignKey;
+use Modular\Persistence\Schema\Definition\ForeignKey;
 use PHPUnit\Framework\TestCase;
 
 final class ForeignKeyTest extends TestCase

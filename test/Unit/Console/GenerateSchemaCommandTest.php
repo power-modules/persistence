@@ -6,7 +6,7 @@ namespace Modular\Persistence\Test\Unit\Console;
 
 use Generator;
 use Modular\Persistence\Console\GenerateSchemaCommand;
-use Modular\Persistence\Schema\ISchemaQueryGenerator;
+use Modular\Persistence\Schema\Contract\ISchemaQueryGenerator;
 use Modular\Persistence\Test\Unit\Repository\Fixture\Schema;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -108,7 +108,7 @@ final class GenerateSchemaCommandTest extends TestCase
         self::assertSame(1, $tester->getStatusCode());
         $output = (string) preg_replace('/\s+/', ' ', $tester->getDisplay());
         self::assertStringContainsString('Class "Modular\Persistence\Test\Unit\Console\GenerateSchemaCommandTest" must implement', $output);
-        self::assertStringContainsString('"Modular\Persistence\Schema\ISchema".', $output);
+        self::assertStringContainsString('"Modular\Persistence\Schema\Contract\ISchema".', $output);
     }
 
     /**

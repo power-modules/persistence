@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Modular\Persistence\Test\Unit\Repository\Fixture;
 
 use DateTimeImmutable;
-use Modular\Persistence\Schema\IHydrator;
+use Modular\Persistence\Schema\Contract\IHydrator;
 
 /**
  * @implements IHydrator<Employee>

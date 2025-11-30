@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Modular\Persistence\Test\Unit\Schema;
 
-use Modular\Persistence\Schema\ColumnDefinition;
+use Modular\Persistence\Schema\Definition\ColumnDefinition;
 use Modular\Persistence\Test\Unit\Repository\Fixture\Schema;
 use PHPUnit\Framework\TestCase;
 
