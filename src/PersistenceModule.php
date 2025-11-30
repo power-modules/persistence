@@ -83,5 +83,30 @@ class PersistenceModule implements PowerModule, HasConfig, ExportsComponents
         )->addArguments([
             PostgresSchemaQueryGenerator::class,
         ]);
+
+        $container->set(
+            MakeSchemaCommand::class,
+            MakeSchemaCommand::class,
+        );
+
+        $container->set(
+            MakeEntityCommand::class,
+            MakeEntityCommand::class,
+        );
+
+        $container->set(
+            MakeHydratorCommand::class,
+            MakeHydratorCommand::class,
+        );
+
+        $container->set(
+            MakeRepositoryCommand::class,
+            MakeRepositoryCommand::class,
+        );
+
+        $container->set(
+            ScaffoldCommand::class,
+            ScaffoldCommand::class,
+        );
     }
 }
