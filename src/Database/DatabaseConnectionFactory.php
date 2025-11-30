@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Modular\Persistence;
+namespace Modular\Persistence\Database;
 
 use Modular\Persistence\Config\Config;
 use PDO;
@@ -16,9 +16,13 @@ final readonly class DatabaseConnectionFactory
 
     public function make(): IDatabase
     {
-        return new Database(
-            $this->makePdo(),
-        );
+        $pdo = $this->makePdo();
+
+        if ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql') {
+            return new PostgresDatabase($pdo);
+        }
+
+        return new Database($pdo);
     }
 
     public function makePdo(): \PDO

@@ -6,6 +6,7 @@ namespace Modular\Persistence\Repository\Statement;
 
 use Modular\Persistence\Repository\Condition;
 use Modular\Persistence\Repository\Operator;
+use Modular\Persistence\Repository\Statement\Contract\Bind;
 use PDO;
 
 trait TStatementHasParams

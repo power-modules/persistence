@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Modular\Persistence\Repository\Statement;
 
+use Modular\Persistence\Repository\Statement\Contract\Bind;
+use Modular\Persistence\Repository\Statement\Contract\IUpdateStatement;
+
 class UpdateStatement implements IUpdateStatement
 {
     use TStatementHasParams;

@@ -11,6 +11,11 @@ use Modular\Framework\PowerModule\Contract\ExportsComponents;
 use Modular\Framework\PowerModule\Contract\PowerModule;
 use Modular\Persistence\Config\Config;
 use Modular\Persistence\Console\GenerateSchemaCommand;
+use Modular\Persistence\Database\Database;
+use Modular\Persistence\Database\DatabaseConnectionFactory;
+use Modular\Persistence\Database\IDatabase;
+use Modular\Persistence\Database\IPostgresDatabase;
+use Modular\Persistence\Database\PostgresDatabase;
 use Modular\Persistence\Schema\Adapter\PostgresSchemaQueryGenerator;
 use PDO;
 
@@ -57,7 +62,7 @@ class PersistenceModule implements PowerModule, HasConfig, ExportsComponents
 
         $container->set(
             IPostgresDatabase::class,
-            Database::class,
+            PostgresDatabase::class,
         )->addArguments([
             static fn (DatabaseConnectionFactory $factory): PDO => $factory->makePdo(),
         ]);

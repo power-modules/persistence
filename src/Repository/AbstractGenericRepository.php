@@ -4,16 +4,14 @@ declare(strict_types=1);
 
 namespace Modular\Persistence\Repository;
 
-use Modular\Persistence\IDatabase;
+use Modular\Persistence\Database\IDatabase;
 use Modular\Persistence\Repository\Exception\PreparedStatementException;
-use Modular\Persistence\Repository\Statement\DeleteStatement;
-use Modular\Persistence\Repository\Statement\IDeleteStatement;
-use Modular\Persistence\Repository\Statement\IInsertStatement;
-use Modular\Persistence\Repository\Statement\InsertStatement;
-use Modular\Persistence\Repository\Statement\ISelectStatement;
-use Modular\Persistence\Repository\Statement\IUpdateStatement;
-use Modular\Persistence\Repository\Statement\SelectStatement;
-use Modular\Persistence\Repository\Statement\UpdateStatement;
+use Modular\Persistence\Repository\Statement\Contract\IDeleteStatement;
+use Modular\Persistence\Repository\Statement\Contract\IInsertStatement;
+use Modular\Persistence\Repository\Statement\Contract\ISelectStatement;
+use Modular\Persistence\Repository\Statement\Contract\IStatementFactory;
+use Modular\Persistence\Repository\Statement\Contract\IUpdateStatement;
+use Modular\Persistence\Repository\Statement\Factory\GenericStatementFactory;
 use Modular\Persistence\Schema\IHydrator;
 use PDOException;
 use Throwable;
@@ -29,27 +27,8 @@ abstract class AbstractGenericRepository
     public function __construct(
         protected readonly IDatabase $database,
         public readonly IHydrator $hydrator,
+        protected readonly IStatementFactory $statementFactory = new GenericStatementFactory(),
     ) {
-    }
-
-    public function beginTransaction(): bool
-    {
-        return $this->database->beginTransaction();
-    }
-
-    public function commit(): bool
-    {
-        return $this->database->commit();
-    }
-
-    public function inTransaction(): bool
-    {
-        return $this->database->inTransaction();
-    }
-
-    public function rollback(): bool
-    {
-        return $this->database->rollBack();
     }
 
     public function has(Condition ...$conditions): bool
@@ -290,12 +269,12 @@ abstract class AbstractGenericRepository
 
     protected function getSelectStatement(): ISelectStatement
     {
-        return new SelectStatement($this->getTableName());
+        return $this->statementFactory->createSelectStatement($this->getTableName());
     }
 
     protected function getUpdateStatement(): IUpdateStatement
     {
-        return new UpdateStatement($this->getTableName());
+        return $this->statementFactory->createUpdateStatement($this->getTableName());
     }
 
     /**
@@ -303,12 +282,12 @@ abstract class AbstractGenericRepository
      */
     protected function getInsertStatement(array $columns): IInsertStatement
     {
-        return new InsertStatement($this->getTableName(), $columns);
+        return $this->statementFactory->createInsertStatement($this->getTableName(), $columns);
     }
 
     protected function getDeleteStatement(): IDeleteStatement
     {
-        return new DeleteStatement($this->getTableName());
+        return $this->statementFactory->createDeleteStatement($this->getTableName());
     }
 
     /**

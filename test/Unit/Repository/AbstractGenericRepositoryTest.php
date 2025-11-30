@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Modular\Persistence\Test\Unit\Repository;
 
 use DateTimeImmutable;
-use Modular\Persistence\Database;
+use Modular\Persistence\Database\Database;
 use Modular\Persistence\Repository\Condition;
 use Modular\Persistence\Repository\Statement\SelectStatement;
 use Modular\Persistence\Schema\Adapter\PostgresSchemaQueryGenerator;

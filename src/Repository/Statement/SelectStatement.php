@@ -7,6 +7,7 @@ namespace Modular\Persistence\Repository\Statement;
 use InvalidArgumentException;
 use Modular\Persistence\Repository\Join;
 use Modular\Persistence\Repository\RawJoin;
+use Modular\Persistence\Repository\Statement\Contract\ISelectStatement;
 
 class SelectStatement implements ISelectStatement
 {

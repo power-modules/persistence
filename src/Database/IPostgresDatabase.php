@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Modular\Persistence;
+namespace Modular\Persistence\Database;
 
 use PDO;
 use PDOException;

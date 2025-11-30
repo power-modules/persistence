@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Modular\Persistence\Repository\Statement;
+namespace Modular\Persistence\Repository\Statement\Contract;
 
 interface IInsertStatement extends IStatementHasParams
 {
