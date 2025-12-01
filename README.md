@@ -1,389 +1,181 @@
 # Modular Persistence
 
-A type-safe, enum-driven persistence layer for PHP 8.3+ applications built on the Modular Framework. This library provides a repository pattern with fluent query building, schema management, and PostgreSQL-optimized database operations.
+[![CI](https://github.com/power-modules/persistence/actions/workflows/php.yml/badge.svg)](https://github.com/power-modules/persistence/actions/workflows/php.yml)
+[![Packagist Version](https://img.shields.io/packagist/v/power-modules/persistence)](https://packagist.org/packages/power-modules/persistence)
+[![PHP Version](https://img.shields.io/packagist/php-v/power-modules/persistence)](https://packagist.org/packages/power-modules/persistence)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![PHPStan](https://img.shields.io/badge/PHPStan-level%208-blue)](#)
 
-## Features
+A **type-safe, multi-tenant persistence layer** for PHP 8.4+ built on the Modular Framework. It provides a robust Repository pattern implementation with native support for Postgres schemas and strict type safety.
 
-- 🔒 **Type Safety**: Enum-based column references prevent SQL injection and typos
-- 🏗️ **Repository Pattern**: Generic repositories with built-in CRUD operations
-- 🔍 **Fluent Query Building**: Chainable query builders for complex operations
-- 📊 **Schema Management**: Code-first schema definitions with DDL generation
-- 🗄️ **PostgreSQL Optimized**: Full support for PostgreSQL features like `ILIKE`
-- ⚡ **Transaction Support**: Built-in transaction management
-- 🧪 **Testable**: Integration and unit testing patterns included
+> **💡 Robust:** Built for complex applications requiring strict data integrity, multi-tenancy, and clear separation of concerns.
 
-## Installation
+## ✨ Why Modular Persistence?
+
+- **🔒 Type-Safe Schemas**: Define database schemas using PHP Enums
+- **🏢 Multi-Tenancy Native**: Built-in support for dynamic Postgres schemas (namespaces)
+- **📦 Repository Pattern**: Generic CRUD repositories with decoupled SQL generation
+- **🔄 Explicit Hydration**: Full control over object-relational mapping without magic
+- **🛠️ Scaffolding**: CLI commands to generate your entire persistence layer
+- **⚡ Performance**: Lightweight wrapper around PDO with optimized query generation
+
+## 🚀 Installation
 
 ```bash
-composer require modular/persistence
+composer require power-modules/persistence
 ```
 
-## Quick Start
+## ⚙️ Configuration
 
-### 1. Define Your Schema
+Register the module in your `ModularAppBuilder` and provide configuration in `config/modular_persistence.php`:
 
 ```php
+// config/modular_persistence.php
 <?php
 
-use Modular\Persistence\Schema\Contract\ISchema;
-use Modular\Persistence\Schema\Definition\{ColumnDefinition, ColumnType};
+declare(strict_types=1);
 
-enum UserSchema implements ISchema
+use Modular\Persistence\Config\Config;
+use Modular\Persistence\Config\Setting;
+
+return Config::create()
+    ->set(Setting::Dsn, $_ENV['DB_DSN'] ?? 'pgsql:host=localhost;port=5432;dbname=myapp')
+    ->set(Setting::Username, $_ENV['DB_USERNAME'] ?? 'postgres')
+    ->set(Setting::Password, $_ENV['DB_PASSWORD'] ?? 'secret')
+    ->set(Setting::Options, [
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES => false,
+        PDO::ATTR_TIMEOUT => 5,
+    ])
+;
+```
+
+## 🏗️ Quick Start
+
+The fastest way to get started is using the scaffolding command:
+
+```bash
+php bin/console persistence:scaffold User --table=users
+```
+
+This will generate:
+- `UserSchema` (Enum)
+- `User` (Entity)
+- `UserHydrator` (Mapper)
+- `UserRepository` (Repository)
+
+### Manual Setup
+
+#### 1. Define Schema
+```php
+use Modular\Persistence\Schema\Contract\ISchema;
+use Modular\Persistence\Schema\Contract\IHasIndexes;
+use Modular\Persistence\Schema\Definition\ColumnDefinition;
+use Modular\Persistence\Schema\Definition\Index;
+
+enum UserSchema: string implements ISchema, IHasIndexes
 {
-    case Id;
-    case Email;
-    case Name;
-    case CreatedAt;
+    case Id = 'id';
+    case Email = 'email';
+    case Name = 'name';
 
     public static function getTableName(): string
     {
         return 'users';
     }
-
+    
     public function getColumnDefinition(): ColumnDefinition
     {
         return match ($this) {
             self::Id => ColumnDefinition::uuid($this)->primaryKey(),
-            self::Email => ColumnDefinition::varchar($this),
-            self::Status => ColumnDefinition::varchar($this, length: 50),
-            self::CreatedAt => ColumnDefinition::timestamptz($this, nullable: false),
+            self::Email => ColumnDefinition::text($this),
+            self::Name => ColumnDefinition::text($this, nullable: true),
         };
+    }
+
+    public static function getIndexes(): array
+    {
+        return [
+            Index::make([self::Email], unique: true),
+        ];
     }
 }
 ```
 
-### 2. Create a Hydrator
-
-The Hydrator is responsible for mapping database rows to objects and extracting data for persistence. It is also the source of truth for entity identity.
-
+#### 2. Create Entity & Hydrator
 ```php
-<?php
-
-use Modular\Persistence\Schema\Contract\IHydrator;
-use Modular\Persistence\Schema\TStandardIdentity;
+readonly class User
+{
+    public function __construct(
+        public string $id,
+        public string $email,
+        public ?string $name,
+    ) {}
+}
 
 class UserHydrator implements IHydrator
 {
-    use TStandardIdentity; // Provides default getId() and getIdFieldName() implementation
+    use TStandardIdentity;
 
-    public function hydrate(array $row): User
+    public function hydrate(array $data): User
     {
         return new User(
-            (int)$row['id'],
-            $row['email'],
-            $row['name'],
-            new DateTimeImmutable($row['created_at'])
+            Uuid::fromString($data[UserSchema::Id->value]),
+            $data[UserSchema::Email->value],
+            $data[UserSchema::Name->value],
         );
     }
 
     public function dehydrate(mixed $entity): array
     {
         return [
-            'email' => $entity->email,
-            'name' => $entity->name,
-            'created_at' => $entity->createdAt->format('Y-m-d H:i:sP'),
+            UserSchema::Id->value => $entity->id,
+            UserSchema::Email->value => $entity->email,
+            UserSchema::Name->value => $entity->name,
         ];
     }
 }
 ```
 
-### 3. Create a Repository
-
+#### 3. Use Repository
 ```php
-<?php
-
-use Modular\Persistence\Repository\AbstractGenericRepository;
-
 class UserRepository extends AbstractGenericRepository
 {
-    public function findByEmail(string $email): ?User
+    protected function getTableName(): string
     {
-        return $this->findOne(
-            Condition::equals(UserSchema::Email, $email)
-        );
-    }
-
-    public function findActiveUsers(): array
-    {
-        return $this->getMany(
-            Condition::notNull(UserSchema::Email)
-        );
+        return UserSchema::getTableName();
     }
 }
+
+// Usage
+$repo = $app->get(UserRepository::class);
+$user = new User(Uuid::uuid7()->toString(), 'test@example.com', 'Test User');
+$repo->save($user);
 ```
 
-### 4. Configure the Module
+## 🏢 Multi-Tenancy
+
+Modular Persistence supports multi-tenancy via Postgres schemas (namespaces).
 
 ```php
-<?php
-// config/modular_persistence.php
+// 1. Setup Provider & Factory
+$nsProvider = new RuntimeNamespaceProvider();
+$factory = new GenericStatementFactory($nsProvider);
 
-use Modular\Persistence\Config\{Config, Setting};
-use PDO;
+// 2. Inject into Repository (usually done via DI container)
+$repo = new UserRepository($db, $hydrator, $factory);
 
-return Config::create()
-    ->set(Setting::Dsn, 'postgresql://user:pass@localhost/mydb')
-    ->set(Setting::Username, 'myuser')
-    ->set(Setting::Password, 'mypass')
-    ->set(Setting::Options, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    ]);
+// 3. Switch Context
+$nsProvider->setNamespace('tenant_123');
+$repo->findAll(); // Executes: SELECT * FROM "tenant_123"."users"
 ```
 
-### 5. Register and Use
-
-```php
-<?php
-
-use Modular\Framework\App\ModularAppFactory;
-use Modular\Persistence\PersistenceModule;
-use Modular\Persistence\Repository\Statement\Factory\GenericStatementFactory;
-
-$app = ModularAppFactory::create();
-$app->registerModules([PersistenceModule::class]);
-
-// Standard setup
-$userRepository = new UserRepository(
-    $app->get(IDatabase::class),
-    new UserHydrator(),
-    new GenericStatementFactory() // Optional, defaults to GenericStatementFactory
-);
-
-// Create a new user
-$user = new User(null, 'john@example.com', 'John Doe', new DateTimeImmutable());
-$userRepository->save($user); // Automatically handles insert vs update
-
-// Find users
-$user = $userRepository->findByEmail('john@example.com');
-$activeUsers = $userRepository->findActiveUsers();
-```
-
-## Multi-Tenancy Support
-
-The library supports multi-tenancy via Postgres schemas (namespaces). You can switch the schema context at runtime without re-instantiating your repositories.
-
-```php
-use Modular\Persistence\Repository\Statement\Provider\RuntimeNamespaceProvider;
-use Modular\Persistence\Repository\Statement\Factory\GenericStatementFactory;
-
-// 1. Setup the provider and factory
-$namespaceProvider = new RuntimeNamespaceProvider();
-$statementFactory = new GenericStatementFactory($namespaceProvider);
-
-// 2. Inject into your repository
-$userRepository = new UserRepository($database, $hydrator, $statementFactory);
-
-// 3. Switch context at runtime (e.g., in a middleware)
-$namespaceProvider->setNamespace('tenant_123');
-
-// 4. Execute queries - they will target "tenant_123"."users"
-$users = $userRepository->findAll();
-```
-
-## Key Concepts
-
-### Enum-Based Column Safety
-
-All database operations use `BackedEnum` values for column references:
-
-```php
-// ✅ Type-safe column reference
-Condition::equals(UserSchema::Email, 'user@example.com')
-
-// ❌ Runtime error prone
-Condition::equals('email', 'user@example.com') // Not allowed
-```
-
-### Operator Validation
-
-The `Operator` enum validates value types at construction:
-
-```php
-// ✅ Valid combinations
-Condition::equals(UserSchema::Name, 'John')           // Scalar value
-Condition::in(UserSchema::Status, ['active', 'pending']) // Array value
-Condition::isNull(UserSchema::DeletedAt)              // Null value
-
-// ❌ Invalid - throws InvalidArgumentException
-Condition::equals(UserSchema::Name, null)             // Wrong type
-Condition::in(UserSchema::Status, 'active')           // Should be array
-```
-
-### Fluent Query Building
-
-Build complex queries with method chaining:
-
-```php
-$selectStatement = $this->getSelectStatement()
-    ->addCondition(Condition::notNull(UserSchema::Email))
-    ->addCondition(Condition::greater(UserSchema::CreatedAt, '2024-01-01'))
-    ->addOrder(UserSchema::Name->value, 'ASC')
-    ->setLimit(50)
-    ->setStart(100);
-
-$users = $this->select($selectStatement);
-```
-
-### Schema Generation
-
-Generate database tables from your enums:
-
-```php
-use Modular\Persistence\Schema\Adapter\PostgresSchemaQueryGenerator;
-
-$generator = new PostgresSchemaQueryGenerator();
-
-foreach ($generator->generate(UserSchema::class) as $query) {
-    $database->exec($query);
-}
-// Creates: CREATE TABLE "users" ("id" BIGSERIAL PRIMARY KEY, ...)
-```
-
-### Foreign Key Relationships
-
-Define foreign key relationships in your schema enums:
-
-```php
-use Modular\Persistence\Schema\Contract\{ISchema, IHasForeignKeys};
-use Modular\Persistence\Schema\Definition\ForeignKey;
-
-enum OrderSchema implements ISchema, IHasForeignKeys
-{
-    case Id;
-    case UserId;
-    case ProductId;
-    
-    // ... other methods ...
-    
-    public static function getForeignKeys(): array
-    {
-        return [
-            // Standard foreign key to same schema
-            new ForeignKey(self::UserId->value, 'users', 'id'),
-            
-            // Foreign key with specific schema name (PostgreSQL)
-            new ForeignKey(self::ProductId->value, 'products', 'id', 'catalog'),
-            
-            // Using the static make method with enums
-            ForeignKey::make(self::UserId, 'users', UserSchema::Id, 'auth'),
-        ];
-    }
-}
-```
-
-This generates SQL like:
-```sql
-FOREIGN KEY ("user_id") REFERENCES "users"("id")
-FOREIGN KEY ("product_id") REFERENCES "catalog"."products"("id")
-```
-
-### Transaction Management
-
-Built-in transaction support in repositories:
-
-```php
-$this->beginTransaction();
-try {
-    $this->insertOne($user);
-    $this->insertOne($profile);
-    $this->commit();
-} catch (Exception $e) {
-    $this->rollback();
-    throw $e;
-}
-```
-
-## Testing
-
-### Run Tests
-
-```bash
-# All tests
-make test
-
-# Code style check
-make codestyle
-
-# Static analysis
-make phpstan
-```
-
-### Integration Testing
-
-Use real database connections:
-
-```php
-class UserRepositoryTest extends TestCase
-{
-    public function testUserCreation(): void
-    {
-        $app = ModularAppFactory::forAppRoot(__DIR__);
-        $app->registerModules([PersistenceModule::class]);
-        
-        $repository = new UserRepository(
-            $app->get(IDatabase::class),
-            new UserHydrator()
-        );
-        
-        // Test with real database...
-    }
-}
-```
-
-## Advanced Features
-
-### Custom Operators
-
-PostgreSQL-specific operators are supported:
-
-```php
-// Case-insensitive search (PostgreSQL ILIKE)
-Condition::ilike(UserSchema::Name, '%john%')
-```
-
-### Join Operations
-
-Build complex queries with joins:
-
-```php
-$selectStatement = $this->getSelectStatement()
-    ->addJoin(new Join(JoinType::Inner, 'profiles', UserSchema::Id, ProfileSchema::UserId))
-    ->addCondition(Condition::equals(ProfileSchema::Status, 'active'));
-
-$results = $this->select($selectStatement);
-```
-
-### Bulk Operations
-
-Efficient bulk inserts with model objects:
-
-```php
-$users = [
-    new User('user1@example.com', 'User 1'),
-    new User('user2@example.com', 'User 2'),
-    // ... more user models
-];
-
-$rowsInserted = $this->insertMany($users);
-```
-
-## Requirements
-
-- PHP 8.3+
-- PostgreSQL (primary support)
-- Modular Framework ^1.0
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Write tests for your changes
-4. Ensure all tests pass: `make test`
-5. Check code style: `make codestyle`
-6. Run static analysis: `make phpstan`
-7. Submit a pull request
-
-## License
-
-MIT License. See LICENSE file for details.
+## 🛠️ Console Commands
+
+- `persistence:scaffold` - Generate all files for a domain entity
+- `persistence:make-schema` - Generate a Schema Enum
+- `persistence:make-entity` - Generate an Entity class
+- `persistence:make-hydrator` - Generate a Hydrator
+- `persistence:make-repository` - Generate a Repository
+- `persistence:generate-schema` - Generate SQL migration from Schema Enums
