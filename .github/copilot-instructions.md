@@ -42,7 +42,7 @@
 - **Testing**: Run `make test` (PHPUnit).
 - **Static Analysis**: Run `make phpstan` (PHPStan).
 - **Code Style**: Run `make codestyle` (PHP-CS-Fixer).
-- **Mandatory Workflow**: Before finishing any refactoring or code change, you MUST run `make test && make phpstan`, fix any errors, and repeat until clean.
+- **Mandatory Workflow**: Before finishing your work, you MUST run/fix/repeat `make phpstan && make test` until errors are gone.
 
 ## Examples
 

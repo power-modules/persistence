@@ -28,7 +28,7 @@ final class Condition
         }
     }
 
-    public static function equals(BackedEnum $column, mixed $value): self
+    public static function equals(BackedEnum|string $column, mixed $value): self
     {
         if ($value instanceof BackedEnum) {
             $value = $value->value;
@@ -37,67 +37,67 @@ final class Condition
         return new self($column, Operator::Equals, $value);
     }
 
-    public static function notEquals(BackedEnum $column, mixed $value): self
+    public static function notEquals(BackedEnum|string $column, mixed $value): self
     {
         return new self($column, Operator::NotEquals, $value);
     }
 
-    public static function greater(BackedEnum $column, mixed $value): self
+    public static function greater(BackedEnum|string $column, mixed $value): self
     {
         return new self($column, Operator::Greater, $value);
     }
 
-    public static function greaterEquals(BackedEnum $column, mixed $value): self
+    public static function greaterEquals(BackedEnum|string $column, mixed $value): self
     {
         return new self($column, Operator::GreaterEquals, $value);
     }
 
-    public static function less(BackedEnum $column, mixed $value): self
+    public static function less(BackedEnum|string $column, mixed $value): self
     {
         return new self($column, Operator::Less, $value);
     }
 
-    public static function lessEquals(BackedEnum $column, mixed $value): self
+    public static function lessEquals(BackedEnum|string $column, mixed $value): self
     {
         return new self($column, Operator::LessEquals, $value);
     }
 
-    public static function in(BackedEnum $column, mixed $value): self
+    public static function in(BackedEnum|string $column, mixed $value): self
     {
         return new self($column, Operator::In, $value);
     }
 
-    public static function notIn(BackedEnum $column, mixed $value): self
+    public static function notIn(BackedEnum|string $column, mixed $value): self
     {
         return new self($column, Operator::NotIn, $value);
     }
 
-    public static function isNull(BackedEnum $column): self
+    public static function isNull(BackedEnum|string $column): self
     {
         return new self($column, Operator::IsNull, null);
     }
 
-    public static function notNull(BackedEnum $column): self
+    public static function notNull(BackedEnum|string $column): self
     {
         return new self($column, Operator::NotNull, null);
     }
 
-    public static function like(BackedEnum $column, mixed $value): self
+    public static function like(BackedEnum|string $column, mixed $value): self
     {
         return new self($column, Operator::Like, $value);
     }
 
-    public static function notLike(BackedEnum $column, mixed $value): self
+    public static function notLike(BackedEnum|string $column, mixed $value): self
     {
         return new self($column, Operator::NotLike, $value);
     }
 
-    public static function ilike(BackedEnum $column, mixed $value): self
+    public static function ilike(BackedEnum|string $column, mixed $value): self
     {
         return new self($column, Operator::Ilike, $value);
     }
 
-    public static function notIlike(BackedEnum $column, mixed $value): self
+    public static function notIlike(BackedEnum|string $column, mixed $value): self
     {
         return new self($column, Operator::NotIlike, $value);
     }
