@@ -6,6 +6,8 @@ namespace Modular\Persistence\Repository;
 
 use Modular\Persistence\Database\IDatabase;
 use Modular\Persistence\Repository\Exception\PreparedStatementException;
+use Modular\Persistence\Repository\Exception\StatementExecutionException;
+use Modular\Persistence\Repository\Statement\Contract\Bind;
 use Modular\Persistence\Repository\Statement\Contract\IDeleteStatement;
 use Modular\Persistence\Repository\Statement\Contract\IInsertStatement;
 use Modular\Persistence\Repository\Statement\Contract\ISelectStatement;
@@ -14,7 +16,7 @@ use Modular\Persistence\Repository\Statement\Contract\IUpdateStatement;
 use Modular\Persistence\Repository\Statement\Factory\GenericStatementFactory;
 use Modular\Persistence\Schema\Contract\IHydrator;
 use PDOException;
-use Throwable;
+use PDOStatement;
 
 /**
  * @template TModel of object
@@ -48,16 +50,14 @@ abstract class AbstractGenericRepository
         $selectStatement->addCondition(...$conditions);
         $statement = $this->database->prepare($selectStatement->count());
 
-        foreach ($selectStatement->getWhereBinds() as $whereBind) {
-            if ($whereBind->value === null) {
-                continue;
+        $this->bindValues($statement, $selectStatement->getWhereBinds());
+
+        try {
+            if ($statement->execute() === false) {
+                throw new PreparedStatementException();
             }
-
-            $statement->bindValue($whereBind->name, $whereBind->value, $whereBind->type);
-        }
-
-        if ($statement->execute() === false) {
-            throw new PreparedStatementException();
+        } catch (PDOException $e) {
+            throw new StatementExecutionException($e->getMessage(), (int) $e->getCode(), $e);
         }
 
         return $statement->fetch()['total_rows'] ?? 0;
@@ -125,20 +125,15 @@ abstract class AbstractGenericRepository
         ;
         $statement = $this->database->prepare($updateStatement->getQuery());
 
-        foreach ($updateStatement->getUpdateBinds() as $updateBind) {
-            $statement->bindValue($updateBind->name, $updateBind->value, $updateBind->type);
-        }
+        $this->bindValues($statement, $updateStatement->getUpdateBinds());
+        $this->bindValues($statement, $updateStatement->getWhereBinds());
 
-        foreach ($updateStatement->getWhereBinds() as $whereBind) {
-            if ($whereBind->value === null) {
-                continue;
+        try {
+            if ($statement->execute() === false) {
+                throw new PreparedStatementException();
             }
-
-            $statement->bindValue($whereBind->name, $whereBind->value, $whereBind->type);
-        }
-
-        if ($statement->execute() === false) {
-            throw new PreparedStatementException();
+        } catch (PDOException $e) {
+            throw new StatementExecutionException($e->getMessage(), (int) $e->getCode(), $e);
         }
 
         return $statement->rowCount();
@@ -189,12 +184,14 @@ abstract class AbstractGenericRepository
 
             $statement = $this->database->prepare($insertStatement->getQuery());
 
-            foreach ($insertStatement->getInsertBinds() as $bind) {
-                $statement->bindValue($bind->name, $bind->value, $bind->type);
-            }
+            $this->bindValues($statement, $insertStatement->getInsertBinds());
 
-            if ($statement->execute() === false) {
-                throw new PreparedStatementException();
+            try {
+                if ($statement->execute() === false) {
+                    throw new PreparedStatementException();
+                }
+            } catch (PDOException $e) {
+                throw new StatementExecutionException($e->getMessage(), (int) $e->getCode(), $e);
             }
 
             $rowsInserted += $statement->rowCount();
@@ -226,16 +223,14 @@ abstract class AbstractGenericRepository
         ;
         $statement = $this->database->prepare($deleteStatement->getQuery());
 
-        foreach ($deleteStatement->getWhereBinds() as $whereBind) {
-            if ($whereBind->value === null) {
-                continue;
+        $this->bindValues($statement, $deleteStatement->getWhereBinds());
+
+        try {
+            if ($statement->execute() === false) {
+                throw new PreparedStatementException();
             }
-
-            $statement->bindValue($whereBind->name, $whereBind->value, $whereBind->type);
-        }
-
-        if ($statement->execute() === false) {
-            throw new PreparedStatementException();
+        } catch (PDOException $e) {
+            throw new StatementExecutionException($e->getMessage(), (int) $e->getCode(), $e);
         }
 
         return $statement->rowCount();
@@ -255,22 +250,14 @@ abstract class AbstractGenericRepository
     {
         $statement = $this->database->prepare($selectStatement->getQuery());
 
-        foreach ($selectStatement->getWhereBinds() as $whereBind) {
-            if ($whereBind->value === null) {
-                continue;
-            }
-
-            $statement->bindValue($whereBind->name, $whereBind->value, $whereBind->type);
-        }
+        $this->bindValues($statement, $selectStatement->getWhereBinds());
 
         try {
             if ($statement->execute() === false) {
                 throw new PreparedStatementException();
             }
-        } catch (Throwable $e) {
-            file_put_contents('/tmp/sql_error.log', $e->getMessage() . "\n" . $selectStatement->getQuery() . "\n", FILE_APPEND);
-
-            throw $e;
+        } catch (PDOException $e) {
+            throw new StatementExecutionException($e->getMessage(), (int) $e->getCode(), $e);
         }
 
         return $statement->fetchAll();
@@ -321,6 +308,20 @@ abstract class AbstractGenericRepository
     protected function hydrateMany(array $rows): array
     {
         return array_map(fn ($row) => $this->hydrator->hydrate($row), $rows);
+    }
+
+    /**
+     * @param array<Bind> $binds
+     */
+    protected function bindValues(PDOStatement $statement, array $binds): void
+    {
+        foreach ($binds as $bind) {
+            if ($bind->value === null) {
+                continue;
+            }
+
+            $statement->bindValue($bind->name, $bind->value, $bind->type);
+        }
     }
 
     abstract protected function getTableName(): string;
