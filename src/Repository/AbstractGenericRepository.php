@@ -316,10 +316,6 @@ abstract class AbstractGenericRepository
     protected function bindValues(PDOStatement $statement, array $binds): void
     {
         foreach ($binds as $bind) {
-            if ($bind->value === null) {
-                continue;
-            }
-
             $statement->bindValue($bind->name, $bind->value, $bind->type);
         }
     }
