@@ -17,8 +17,6 @@ use Modular\Persistence\Console\MakeRepositoryCommand;
 use Modular\Persistence\Console\MakeSchemaCommand;
 use Modular\Persistence\Database\Database;
 use Modular\Persistence\Database\DatabaseConnectionFactory;
-use Modular\Persistence\Database\IDatabase;
-use Modular\Persistence\Database\IPostgresDatabase;
 use Modular\Persistence\Database\PostgresDatabase;
 use Modular\Persistence\Schema\Adapter\PostgresSchemaQueryGenerator;
 use PDO;
@@ -37,8 +35,8 @@ class PersistenceModule implements PowerModule, HasConfig, ExportsComponents
         return [
             DatabaseConnectionFactory::class,
             PostgresSchemaQueryGenerator::class,
-            IDatabase::class,
-            IPostgresDatabase::class,
+            Database::class,
+            PostgresDatabase::class,
             GenerateSchemaCommand::class,
             MakeSchemaCommand::class,
             MakeEntityCommand::class,
@@ -62,14 +60,14 @@ class PersistenceModule implements PowerModule, HasConfig, ExportsComponents
         );
 
         $container->set(
-            IDatabase::class,
+            Database::class,
             Database::class,
         )->addArguments([
             static fn (DatabaseConnectionFactory $factory): PDO => $factory->makePdo(),
         ]);
 
         $container->set(
-            IPostgresDatabase::class,
+            PostgresDatabase::class,
             PostgresDatabase::class,
         )->addArguments([
             static fn (DatabaseConnectionFactory $factory): PDO => $factory->makePdo(),

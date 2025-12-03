@@ -7,8 +7,8 @@ namespace Modular\Persistence\Test\Integration;
 use Modular\Framework\App\Config\Config;
 use Modular\Framework\App\Config\Setting;
 use Modular\Framework\App\ModularAppBuilder;
+use Modular\Persistence\Database\Database;
 use Modular\Persistence\Database\DatabaseConnectionFactory;
-use Modular\Persistence\Database\IDatabase;
 use Modular\Persistence\PersistenceModule;
 use PDO;
 use PHPUnit\Framework\TestCase;
@@ -47,11 +47,11 @@ class DatabaseConnectionFactoryTest extends TestCase
             ->build()
         ;
 
-        $database = $app->get(IDatabase::class);
+        $database = $app->get(Database::class);
         $database->beginTransaction();
         self::assertTrue($database->inTransaction());
 
-        $database2 = $app->get(IDatabase::class);
+        $database2 = $app->get(Database::class);
         self::assertSame($database, $database2);
         self::assertTrue($database2->inTransaction());
     }
