@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace Modular\Persistence\Repository\Statement;
 
-use InvalidArgumentException;
 use Modular\Persistence\Repository\Join;
-use Modular\Persistence\Repository\RawJoin;
 use Modular\Persistence\Repository\Statement\Contract\ISelectStatement;
 
 class SelectStatement implements ISelectStatement
@@ -30,7 +28,7 @@ class SelectStatement implements ISelectStatement
 
     protected int $start = 0;
 
-    protected int $limit = 500;
+    protected ?int $limit = null;
 
     /**
      * @param array<string> $columns
@@ -49,10 +47,15 @@ class SelectStatement implements ISelectStatement
         return $this;
     }
 
-    public function all(int $start = 0, int $limit = 500): string
+    public function all(?int $start = null, ?int $limit = null): string
     {
-        $this->start = $start;
-        $this->limit = $limit;
+        if ($start !== null) {
+            $this->start = $start;
+        }
+
+        if ($limit !== null) {
+            $this->limit = $limit;
+        }
 
         return $this->getQuery();
     }
@@ -85,9 +88,9 @@ class SelectStatement implements ISelectStatement
         return $this->statement;
     }
 
-    public function addJoin(Join ...$join): static
+    public function addJoin(Join ...$joins): static
     {
-        $this->join = array_merge($this->join, $join);
+        $this->join = array_merge($this->join, $joins);
 
         return $this;
     }
@@ -115,7 +118,7 @@ class SelectStatement implements ISelectStatement
         return $this;
     }
 
-    public function setLimit(int $limit): static
+    public function setLimit(?int $limit): static
     {
         $this->limit = $limit;
 
@@ -163,60 +166,34 @@ class SelectStatement implements ISelectStatement
             $joins = [];
 
             foreach ($this->join as $join) {
-                if ($join instanceof RawJoin) {
-                    throw new InvalidArgumentException('RawJoin is deprecated.');
-                    // if ($join->alias === null) {
-                    //     $joins[] = sprintf(
-                    //         '%s JOIN "%s" ON "%s"."%s" = "%s"."%s"',
-                    //         $join->joinType->value,
-                    //         $join->table,
-                    //         $join->table,
-                    //         $join->foreignKey,
-                    //         $this->tableName,
-                    //         $join->localKey,
-                    //     );
-                    // } else {
-                    //     $joins[] = sprintf(
-                    //         '%s JOIN "%s" "%s" ON "%s"."%s" = "%s"."%s"',
-                    //         $join->joinType->value,
-                    //         $join->table,
-                    //         $join->alias,
-                    //         $join->table,
-                    //         $join->foreignKey,
-                    //         $this->tableName,
-                    //         $join->localKey,
-                    //     );
-                    // }
+                if ($join->alias === null) {
+                    $joinStatement = sprintf(
+                        '%s JOIN "%s" ON "%s"."%s" = "%s"."%s"',
+                        $join->joinType->value,
+                        $join->table,
+                        $join->table,
+                        $join->foreignKey,
+                        $join->localTable ?? $this->tableName,
+                        $join->localKey,
+                    );
                 } else {
-                    if ($join->alias === null) {
-                        $joinStatement = sprintf(
-                            '%s JOIN "%s" ON "%s"."%s" = "%s"."%s"',
-                            $join->joinType->value,
-                            $join->table,
-                            $join->table,
-                            $join->foreignKey,
-                            $join->localTable ?? $this->tableName,
-                            $join->localKey,
-                        );
-                    } else {
-                        $joinStatement = sprintf(
-                            '%s JOIN "%s" "%s" ON "%s"."%s" = "%s"."%s"',
-                            $join->joinType->value,
-                            $join->table,
-                            $join->alias,
-                            $join->alias,
-                            $join->foreignKey,
-                            $join->localTable ?? $this->tableName,
-                            $join->localKey,
-                        );
-                    }
-
-                    if ($join->localKeyType !== null) {
-                        $joinStatement = sprintf('%s::%s', $joinStatement, $join->localKeyType);
-                    }
-
-                    $joins[] = $joinStatement;
+                    $joinStatement = sprintf(
+                        '%s JOIN "%s" "%s" ON "%s"."%s" = "%s"."%s"',
+                        $join->joinType->value,
+                        $join->table,
+                        $join->alias,
+                        $join->alias,
+                        $join->foreignKey,
+                        $join->localTable ?? $this->tableName,
+                        $join->localKey,
+                    );
                 }
+
+                if ($join->localKeyType !== null) {
+                    $joinStatement = sprintf('%s::%s', $joinStatement, $join->localKeyType);
+                }
+
+                $joins[] = $joinStatement;
             }
 
             $this->statement = sprintf('%s %s', $this->statement, implode(' ', $joins));
@@ -245,6 +222,10 @@ class SelectStatement implements ISelectStatement
 
     protected function setupLimit(): static
     {
+        if ($this->limit === null) {
+            return $this;
+        }
+
         $this->statement = sprintf('%s LIMIT %d OFFSET %d', $this->statement, $this->limit, $this->start);
 
         return $this;

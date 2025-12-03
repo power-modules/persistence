@@ -25,11 +25,11 @@ trait TStatementHasParams
 
     private int $idx = 0;
 
-    public function addCondition(Condition ...$condition): static
+    public function addCondition(Condition ...$conditions): static
     {
         $groupedConditions = [];
 
-        foreach ($condition as $condition) {
+        foreach ($conditions as $condition) {
             $groupedConditions[] = $condition;
 
             if (in_array($condition->operator, [Operator::In, Operator::NotIn]) === true) {

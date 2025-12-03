@@ -11,14 +11,14 @@ interface ISelectStatement extends IStatementHasParams
 {
     public function getQuery(): string;
     public function one(): string;
-    public function all(int $start = 0, int $limit = 500): string;
+    public function all(?int $start = null, ?int $limit = null): string;
     public function count(): string;
-    public function addJoin(Join ...$join): static;
+    public function addJoin(Join ...$joins): static;
     public function unshiftJoin(Join ...$joins): static;
-    public function addCondition(Condition ...$condition): static;
+    public function addCondition(Condition ...$conditions): static;
     public function addColumns(string ...$columns): self;
     public function addOrder(string $field, string $dir): static;
     public function addGroupBy(string $field): static;
     public function setStart(int $start): static;
-    public function setLimit(int $limit): static;
+    public function setLimit(?int $limit): static;
 }

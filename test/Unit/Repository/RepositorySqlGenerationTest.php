@@ -9,6 +9,7 @@ use Modular\Persistence\Repository\AbstractGenericRepository;
 use Modular\Persistence\Repository\Condition;
 use Modular\Persistence\Repository\Join;
 use Modular\Persistence\Repository\JoinType;
+use Modular\Persistence\Test\Unit\Repository\Fixture\Employee;
 use Modular\Persistence\Test\Unit\Repository\Fixture\Hydrator;
 use PDOStatement;
 use PHPUnit\Framework\TestCase;
@@ -43,7 +44,7 @@ class RepositorySqlGenerationTest extends TestCase
             }))
             ->willReturn($pdoStatement);
 
-        $repository = new class ($database, new Hydrator()) extends AbstractGenericRepository {
+        $repository = new /** @extends AbstractGenericRepository<Employee> */ class ($database, new Hydrator()) extends AbstractGenericRepository {
             protected function getTableName(): string
             {
                 return 'employees';

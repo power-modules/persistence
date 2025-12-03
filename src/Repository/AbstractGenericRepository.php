@@ -17,7 +17,7 @@ use PDOException;
 use Throwable;
 
 /**
- * @template TModel
+ * @template TModel of object
  */
 abstract class AbstractGenericRepository
 {
@@ -31,14 +31,20 @@ abstract class AbstractGenericRepository
     ) {
     }
 
-    public function has(Condition ...$conditions): bool
+    /**
+     * @param array<Condition> $conditions
+     */
+    public function exists(array $conditions = []): bool
     {
-        return $this->getTotal(null, ...$conditions) > 0;
+        return $this->count($conditions) > 0;
     }
 
-    public function getTotal(?ISelectStatement $selectStatement = null, Condition ...$conditions): int
+    /**
+     * @param array<Condition> $conditions
+     */
+    public function count(array $conditions = [], ?ISelectStatement $selectStatement = null): int
     {
-        $selectStatement ??= $this->getSelectStatement();
+        $selectStatement = $selectStatement ? clone $selectStatement : $this->getSelectStatement();
         $selectStatement->addCondition(...$conditions);
         $statement = $this->database->prepare($selectStatement->count());
 
@@ -58,35 +64,32 @@ abstract class AbstractGenericRepository
     }
 
     /**
+     * @param array<Condition> $conditions
      * @return array<int,TModel>
      * @throws PDOException
      * @throws PreparedStatementException
      */
-    public function getMany(Condition ...$condition): array
+    public function findBy(array $conditions = [], ?ISelectStatement $selectStatement = null): array
     {
-        $selectStatement = $this
-            ->getSelectStatement()
-            ->addCondition(...$condition)
-        ;
-
+        $selectStatement = $selectStatement ? clone $selectStatement : $this->getSelectStatement();
+        $selectStatement->addCondition(...$conditions);
         $selectStatement->all();
 
         $rows = $this->select($selectStatement);
 
-        return array_map(fn ($row) => $this->hydrator->hydrate($row), $rows);
+        return $this->hydrateMany($rows);
     }
 
     /**
+     * @param array<Condition> $conditions
      * @return null|TModel
      * @throws PDOException
      * @throws PreparedStatementException
      */
-    public function findOne(Condition ...$condition): mixed
+    public function findOneBy(array $conditions = [], ?ISelectStatement $selectStatement = null): mixed
     {
-        $selectStatement = $this
-            ->getSelectStatement()
-            ->addCondition(...$condition)
-        ;
+        $selectStatement = $selectStatement ? clone $selectStatement : $this->getSelectStatement();
+        $selectStatement->addCondition(...$conditions);
 
         $selectStatement->one();
 
@@ -102,22 +105,23 @@ abstract class AbstractGenericRepository
     /**
      * @return null|TModel
      */
-    public function getOne(int|string $id): mixed
+    public function find(int|string $id): mixed
     {
-        return $this->getMany(
-            new Condition($this->hydrator->getIdFieldName(), Operator::Equals, $id),
+        return $this->findBy(
+            [new Condition($this->hydrator->getIdFieldName(), Operator::Equals, $id)],
         )[0] ?? null;
     }
 
     /**
      * @param array<string, mixed> $data
+     * @param array<Condition> $conditions
      */
-    public function updateMany(array $data, Condition ...$condition): int
+    public function updateBy(array $data, array $conditions = []): int
     {
         $updateStatement = $this
             ->getUpdateStatement()
             ->prepareBinds($data)
-            ->addCondition(...$condition)
+            ->addCondition(...$conditions)
         ;
         $statement = $this->database->prepare($updateStatement->getQuery());
 
@@ -143,7 +147,7 @@ abstract class AbstractGenericRepository
     /**
      * @param TModel $entity
      */
-    public function updateOne($entity): int
+    public function update(object $entity): int
     {
         $data = $this->hydrator->dehydrate($entity);
         $id = $this->hydrator->getId($entity);
@@ -151,16 +155,16 @@ abstract class AbstractGenericRepository
 
         unset($data[$idFieldName]);
 
-        return $this->updateMany(
+        return $this->updateBy(
             $data,
-            new Condition($idFieldName, Operator::Equals, $id),
+            [new Condition($idFieldName, Operator::Equals, $id)],
         );
     }
 
     /**
      * @param array<TModel> $entities
      */
-    public function insertMany(array $entities): int
+    public function insertAll(array $entities): int
     {
         $insertInTransaction = $this->database->inTransaction() === false;
 
@@ -206,16 +210,19 @@ abstract class AbstractGenericRepository
     /**
      * @param TModel $entity
      */
-    public function insertOne($entity): int
+    public function insert(object $entity): int
     {
-        return $this->insertMany([$entity]);
+        return $this->insertAll([$entity]);
     }
 
-    public function deleteMany(Condition ...$condition): int
+    /**
+     * @param array<Condition> $conditions
+     */
+    public function deleteBy(array $conditions = []): int
     {
         $deleteStatement = $this
             ->getDeleteStatement()
-            ->addCondition(...$condition)
+            ->addCondition(...$conditions)
         ;
         $statement = $this->database->prepare($deleteStatement->getQuery());
 
@@ -234,10 +241,10 @@ abstract class AbstractGenericRepository
         return $statement->rowCount();
     }
 
-    public function deleteOne(int|string $id): int
+    public function delete(int|string $id): int
     {
-        return $this->deleteMany(
-            new Condition($this->hydrator->getIdFieldName(), Operator::Equals, $id),
+        return $this->deleteBy(
+            [new Condition($this->hydrator->getIdFieldName(), Operator::Equals, $id)],
         );
     }
 
@@ -300,11 +307,20 @@ abstract class AbstractGenericRepository
         $id = $this->hydrator->getId($entity);
         $idFieldName = $this->hydrator->getIdFieldName();
 
-        if ($this->has(new Condition($idFieldName, Operator::Equals, $id))) {
-            return $this->updateOne($entity);
+        if ($this->exists([new Condition($idFieldName, Operator::Equals, $id)])) {
+            return $this->update($entity);
         }
 
-        return $this->insertOne($entity);
+        return $this->insert($entity);
+    }
+
+    /**
+     * @param array<array<string, mixed>> $rows
+     * @return array<int, TModel>
+     */
+    protected function hydrateMany(array $rows): array
+    {
+        return array_map(fn ($row) => $this->hydrator->hydrate($row), $rows);
     }
 
     abstract protected function getTableName(): string;
