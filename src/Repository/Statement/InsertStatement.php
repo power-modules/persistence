@@ -9,7 +9,7 @@ use Modular\Persistence\Repository\Statement\Contract\IInsertStatement;
 
 class InsertStatement implements IInsertStatement
 {
-    use TStatementHasParams;
+    private string $statement = '';
 
     /**
      * @var array<Bind>
@@ -52,7 +52,7 @@ class InsertStatement implements IInsertStatement
         $values = [];
 
         foreach ($data as $column => $value) {
-            $this->insertBinds[] = $bind = $this->makeBind($column, $value, 'i_' . $this->idx++);
+            $this->insertBinds[] = $bind = Bind::create($column, ':i_' . $this->idx++, $value);
             $values[] = $bind->name;
         }
 

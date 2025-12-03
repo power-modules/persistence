@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace Modular\Persistence\Repository\Statement;
 
+use Modular\Persistence\Repository\Condition;
 use Modular\Persistence\Repository\Join;
+use Modular\Persistence\Repository\Statement\Contract\Bind;
 use Modular\Persistence\Repository\Statement\Contract\ISelectStatement;
 
 class SelectStatement implements ISelectStatement
 {
-    use TStatementHasParams;
+    protected string $statement = '';
+    protected ?WhereClause $whereClause = null;
 
     /**
      * @var array<Join>
@@ -160,6 +163,21 @@ class SelectStatement implements ISelectStatement
         return $this;
     }
 
+    public function addCondition(Condition ...$conditions): static
+    {
+        $this->getWhereClause()->add(...$conditions);
+
+        return $this;
+    }
+
+    /**
+     * @return array<Bind>
+     */
+    public function getWhereBinds(): array
+    {
+        return $this->getWhereClause()->getBinds();
+    }
+
     protected function setupJoin(): static
     {
         if (count($this->join) > 0) {
@@ -229,5 +247,21 @@ class SelectStatement implements ISelectStatement
         $this->statement = sprintf('%s LIMIT %d OFFSET %d', $this->statement, $this->limit, $this->start);
 
         return $this;
+    }
+
+    protected function setupWhere(): static
+    {
+        $this->statement .= $this->getWhereClause()->toSql();
+
+        return $this;
+    }
+
+    protected function getWhereClause(): WhereClause
+    {
+        if ($this->whereClause === null) {
+            $this->whereClause = new WhereClause();
+        }
+
+        return $this->whereClause;
     }
 }

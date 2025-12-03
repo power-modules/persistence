@@ -7,7 +7,7 @@ namespace Modular\Persistence\Repository\Statement\Contract;
 use Modular\Persistence\Repository\Condition;
 use Modular\Persistence\Repository\Join;
 
-interface ISelectStatement extends IStatementHasParams
+interface ISelectStatement
 {
     public function getQuery(): string;
     public function one(): string;
@@ -21,4 +21,9 @@ interface ISelectStatement extends IStatementHasParams
     public function addGroupBy(string $field): static;
     public function setStart(int $start): static;
     public function setLimit(?int $limit): static;
+
+    /**
+     * @return array<Bind>
+     */
+    public function getWhereBinds(): array;
 }

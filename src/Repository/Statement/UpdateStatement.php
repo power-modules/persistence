@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Modular\Persistence\Repository\Statement;
 
+use Modular\Persistence\Repository\Condition;
 use Modular\Persistence\Repository\Statement\Contract\Bind;
 use Modular\Persistence\Repository\Statement\Contract\IUpdateStatement;
 
 class UpdateStatement implements IUpdateStatement
 {
-    use TStatementHasParams;
+    protected string $statement = '';
+    protected ?WhereClause $whereClause = null;
 
     /**
      * @var array<Bind>
@@ -46,7 +48,7 @@ class UpdateStatement implements IUpdateStatement
     public function prepareBinds(array $data): static
     {
         foreach ($data as $column => $value) {
-            $this->updateBinds[] = $this->makeBind($column, $value, 'u_'. $this->idx++);
+            $this->updateBinds[] = Bind::create($column, ':u_'. $this->idx++, $value);
         }
 
         return $this;
@@ -55,5 +57,36 @@ class UpdateStatement implements IUpdateStatement
     public function getUpdateBinds(): array
     {
         return $this->updateBinds;
+    }
+
+    public function addCondition(Condition ...$conditions): static
+    {
+        $this->getWhereClause()->add(...$conditions);
+
+        return $this;
+    }
+
+    /**
+     * @return array<Bind>
+     */
+    public function getWhereBinds(): array
+    {
+        return $this->getWhereClause()->getBinds();
+    }
+
+    protected function setupWhere(): static
+    {
+        $this->statement .= $this->getWhereClause()->toSql();
+
+        return $this;
+    }
+
+    protected function getWhereClause(): WhereClause
+    {
+        if ($this->whereClause === null) {
+            $this->whereClause = new WhereClause();
+        }
+
+        return $this->whereClause;
     }
 }
