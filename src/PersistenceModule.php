@@ -15,7 +15,6 @@ use Modular\Persistence\Console\MakeEntityCommand;
 use Modular\Persistence\Console\MakeHydratorCommand;
 use Modular\Persistence\Console\MakeRepositoryCommand;
 use Modular\Persistence\Console\MakeSchemaCommand;
-use Modular\Persistence\Console\ScaffoldCommand;
 use Modular\Persistence\Database\Database;
 use Modular\Persistence\Database\DatabaseConnectionFactory;
 use Modular\Persistence\Database\IDatabase;
@@ -45,7 +44,6 @@ class PersistenceModule implements PowerModule, HasConfig, ExportsComponents
             MakeEntityCommand::class,
             MakeHydratorCommand::class,
             MakeRepositoryCommand::class,
-            ScaffoldCommand::class,
         ];
     }
 
@@ -102,11 +100,6 @@ class PersistenceModule implements PowerModule, HasConfig, ExportsComponents
         $container->set(
             MakeRepositoryCommand::class,
             MakeRepositoryCommand::class,
-        );
-
-        $container->set(
-            ScaffoldCommand::class,
-            ScaffoldCommand::class,
         );
     }
 }
