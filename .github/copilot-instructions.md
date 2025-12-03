@@ -4,7 +4,7 @@
 - **Core**: Type-safe persistence layer for PHP 8.4+ built on `power-modules/framework`.
 - **Database**: `IDatabase` acts as a facade composed of `IQueryExecutor` and `ITransactionManager`.
 - **Repository Pattern**: `AbstractGenericRepository` provides generic CRUD, decoupled from SQL generation via `IStatementFactory`.
-- **Multi-Tenancy**: Native support for dynamic Postgres schemas (namespaces) via `INamespaceProvider`.
+- **Multi-Tenancy**: Native support for dynamic Postgres schemas (namespaces) via `NamespaceAwarePostgresDatabase` decorator.
 - **Schema**: Defined via Enums implementing `ISchema`.
 
 ## Key Components
@@ -13,11 +13,12 @@
 - **IQueryExecutor**: Handles `query`, `execute`, `prepare`.
 - **ITransactionManager**: Handles `beginTransaction`, `commit`, `rollback`.
 - **PostgresDatabase**: Concrete implementation handling driver-specifics.
+- **NamespaceAwarePostgresDatabase**: Decorator that automatically sets the PostgreSQL `search_path` based on `INamespaceProvider`.
 
 ### Repository Layer (`src/Repository`)
 - **AbstractGenericRepository**: Base class. Implements `save` (upsert), `deleteBy`, `findBy`, etc.
 - **IStatementFactory** (`src/Repository/Statement/Contract`): Interface for creating SQL statements.
-- **GenericStatementFactory** (`src/Repository/Statement/Factory`): Standard factory. Supports `INamespaceProvider`.
+- **GenericStatementFactory** (`src/Repository/Statement/Factory`): Standard factory.
 - **RuntimeNamespaceProvider** (`src/Repository/Statement/Provider`): Allows runtime switching of database schemas (e.g., for multi-tenant apps).
 - **WhereClause** (`src/Repository/Statement`): Encapsulates condition handling and SQL generation for WHERE clauses.
 
@@ -36,8 +37,8 @@
 2.  **Repository `save()` Logic**: The `save` method is an "upsert". It checks if the entity has an ID (via Hydrator). If yes -> `update`, if no -> `insert`.
 3.  **Statement Factories**: Never instantiate `SelectStatement` or `UpdateStatement` directly in Repositories. Always use `$this->statementFactory`. This ensures multi-tenancy support works.
 4.  **Database Composition**: We moved away from a monolithic `Database` class. It now delegates to `QueryExecutor` and `TransactionManager`. This improves testability and adheres to ISP.
-5.  **Multi-Tenancy**: We use Postgres Schemas (Namespaces). This is handled by injecting a `RuntimeNamespaceProvider` into the `GenericStatementFactory`.
-    - *Decision*: We do not pass the namespace to every repository method. It is a cross-cutting concern handled by the Factory/Provider.
+5.  **Multi-Tenancy**: We use Postgres Schemas (Namespaces). This is handled by decorating the `IPostgresDatabase` with `NamespaceAwarePostgresDatabase`.
+    - *Decision*: We moved away from injecting the namespace into the `GenericStatementFactory`. Instead, we use the database driver's `search_path` capability. This ensures Foreign Keys work correctly and SQL remains clean (unqualified table names).
 6.  **Composition over Traits**: We prefer composition (e.g., `WhereClause`) over traits (`TStatementHasParams`) for shared logic in Statements to avoid tight coupling and hidden dependencies.
 
 ## Developer Workflows
@@ -50,16 +51,20 @@
 
 ### Multi-Tenant Setup
 ```php
-// 1. Setup Provider & Factory
+// 1. Setup Database Decorator
 $nsProvider = new RuntimeNamespaceProvider();
-$factory = new GenericStatementFactory($nsProvider);
+$db = new NamespaceAwarePostgresDatabase(new PostgresDatabase($pdo), $nsProvider);
 
-// 2. Inject into Repository
+// 2. Setup Factory (Empty constructor for dynamic tenancy)
+$factory = new GenericStatementFactory();
+
+// 3. Inject into Repository
 $repo = new UserRepository($db, $hydrator, $factory);
 
-// 3. Runtime Context Switch
+// 4. Runtime Context Switch
 $nsProvider->setNamespace('tenant_123');
-$repo->findBy(); // Executes: SELECT * FROM "tenant_123"."users"
+$repo->findBy(); 
+// Executes: SET search_path TO "tenant_123"; SELECT * FROM "users"
 ```
 
 ### Hydrator Implementation

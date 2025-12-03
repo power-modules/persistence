@@ -156,19 +156,28 @@ $repo->save($user);
 
 ## 🏢 Multi-Tenancy
 
-Modular Persistence supports multi-tenancy via Postgres schemas (namespaces).
+Modular Persistence supports multi-tenancy via Postgres schemas (namespaces) using a **Decorator Pattern** on the database connection. This ensures `search_path` is correctly set for every query, allowing for clean SQL generation and correct Foreign Key resolution.
 
 ```php
-// 1. Setup Provider & Factory
+// 1. Setup Database with Decorator
+$rawDb = new PostgresDatabase($pdo);
 $nsProvider = new RuntimeNamespaceProvider();
-$factory = new GenericStatementFactory($nsProvider);
 
-// 2. Inject into Repository (usually done via DI container)
+// Decorate the database to handle automatic context switching
+$db = new NamespaceAwarePostgresDatabase($rawDb, $nsProvider);
+
+// 2. Setup Factory (No namespace provider needed here for dynamic tenancy)
+$factory = new GenericStatementFactory();
+
+// 3. Inject into Repository
 $repo = new UserRepository($db, $hydrator, $factory);
 
-// 3. Switch Context
+// 4. Switch Context
 $nsProvider->setNamespace('tenant_123');
-$repo->findBy(); // Executes: SELECT * FROM "tenant_123"."users"
+$repo->findBy(); 
+// Internally executes: 
+// SET search_path TO "tenant_123"; 
+// SELECT * FROM "users";
 ```
 
 ## 🛠️ Console Commands
