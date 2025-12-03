@@ -22,6 +22,12 @@ interface IPostgresDatabase extends IDatabase
     public function setSearchPath(string $searchPath): void;
 
     /**
+     * Switch to a specific namespace (schema).
+     * This should handle sanitization and execution of "SET search_path".
+     */
+    public function useNamespace(string $namespace): void;
+
+    /**
      * @return array<mixed>|false
      */
     public function pgsqlGetNotify(int $fetchMode = PDO::FETCH_DEFAULT, int $timeoutMilliseconds = 0): array|false;
