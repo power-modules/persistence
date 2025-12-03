@@ -34,6 +34,34 @@ final readonly class ColumnDefinition
         );
     }
 
+    public function nullable(bool $nullable = true): self
+    {
+        return new self(
+            $this->name,
+            $this->columnType,
+            $this->default,
+            $nullable,
+            $this->precision,
+            $this->scale,
+            $this->isAutoincrement,
+            $this->isPrimaryKey,
+        );
+    }
+
+    public function default(mixed $default): self
+    {
+        return new self(
+            $this->name,
+            $this->columnType,
+            $default,
+            $this->nullable,
+            $this->precision,
+            $this->scale,
+            $this->isAutoincrement,
+            $this->isPrimaryKey,
+        );
+    }
+
     public static function autoincrement(
         BackedEnum $name,
         ColumnType $columnType = ColumnType::Bigint,
@@ -45,77 +73,59 @@ final readonly class ColumnDefinition
     public static function bigint(
         BackedEnum $name,
         int $length = 20,
-        bool $nullable = true,
-        ?int $default = null,
     ): self {
-        return new self((string)$name->value, ColumnType::Bigint, $default, $nullable, $length);
+        return new self((string)$name->value, ColumnType::Bigint, null, true, $length);
     }
 
     public static function date(
         BackedEnum $name,
-        bool $nullable = true,
-        string $default = '1970-01-01 00:00:01',
     ): self {
-        return new self((string)$name->value, ColumnType::Date, $default, $nullable);
+        return new self((string)$name->value, ColumnType::Date, '1970-01-01 00:00:01', true);
     }
 
     public static function decimal(
         BackedEnum $name,
         int $precision,
         int $scale,
-        bool $nullable = false,
-        ?float $default = 0,
     ): self {
-        return new self((string)$name->value, ColumnType::Decimal, $default, $nullable, $precision, $scale);
+        return new self((string)$name->value, ColumnType::Decimal, 0, false, $precision, $scale);
     }
 
     public static function int(
         BackedEnum $name,
         int $length,
-        bool $nullable = true,
-        ?int $default = null,
     ): self {
-        return new self((string)$name->value, ColumnType::Int, $default, $nullable, $length);
+        return new self((string)$name->value, ColumnType::Int, null, true, $length);
     }
 
     public static function mediumblob(
         BackedEnum $name,
-        bool $nullable = true,
-        ?string $default = null,
     ): self {
-        return new self((string)$name->value, ColumnType::Mediumblob, $default, $nullable);
+        return new self((string)$name->value, ColumnType::Mediumblob, null, true);
     }
 
     public static function smallint(
         BackedEnum $name,
-        bool $nullable = true,
-        ?int $default = null,
     ): self {
-        return new self((string)$name->value, ColumnType::SmallInt, $default, $nullable);
+        return new self((string)$name->value, ColumnType::SmallInt, null, true);
     }
 
     public static function text(
         BackedEnum $name,
-        bool $nullable = true,
-        ?string $default = null,
     ): self {
-        return new self((string)$name->value, ColumnType::Text, $default, $nullable);
+        return new self((string)$name->value, ColumnType::Text, null, true);
     }
 
     public static function jsonb(
         BackedEnum $name,
-        bool $nullable = true,
-        ?string $default = null,
     ): self {
-        return new self((string)$name->value, ColumnType::Jsonb, $default, $nullable);
+        return new self((string)$name->value, ColumnType::Jsonb, null, true);
     }
 
     public static function timestamp(
         BackedEnum $name,
-        bool $nullable = false,
-        ?string $default = '1970-01-01 00:00:01',
     ): self {
-        return new self((string)$name->value, ColumnType::Timestamp, $default, $nullable);
+        return new self((string)$name->value, ColumnType::Timestamp, '1970-01-01 00:00:01', false);
     }
 
     /**
@@ -124,34 +134,27 @@ final readonly class ColumnDefinition
     public static function tinyint(
         BackedEnum $name,
         int $length = 1,
-        bool $nullable = true,
-        ?int $default = null,
     ): self {
-        return new self((string)$name->value, ColumnType::Tinyint, $default, $nullable, $length);
+        return new self((string)$name->value, ColumnType::Tinyint, null, true, $length);
     }
 
     public static function uuid(
         BackedEnum $name,
-        bool $nullable = false,
     ): self {
-        return new self((string)$name->value, ColumnType::Uuid, null, $nullable);
+        return new self((string)$name->value, ColumnType::Uuid, null, false);
     }
 
     public static function varchar(
         BackedEnum $name,
         int $length = 255,
-        bool $nullable = true,
-        ?string $default = null,
     ): self {
-        return new self((string)$name->value, ColumnType::Varchar, $default, $nullable, $length);
+        return new self((string)$name->value, ColumnType::Varchar, null, true, $length);
     }
 
     public static function timestamptz(
         BackedEnum $name,
-        bool $nullable = false,
-        ?string $default = '1970-01-01 00:00:01',
     ): self {
-        return new self((string)$name->value, ColumnType::TimestampTz, $default, $nullable);
+        return new self((string)$name->value, ColumnType::TimestampTz, '1970-01-01 00:00:01', false);
     }
 
     public function withName(BackedEnum $name): ColumnDefinition

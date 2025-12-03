@@ -23,9 +23,9 @@ enum Schema: string implements ISchema
     {
         return match ($this) {
             self::Id => ColumnDefinition::autoincrement(self::Id)->primaryKey(),
-            self::Name => ColumnDefinition::varchar(self::Name, 255, false),
-            self::CreatedAt => ColumnDefinition::timestamptz(self::CreatedAt, false),
-            self::DeletedAt => ColumnDefinition::timestamptz(self::DeletedAt, true, null),
+            self::Name => ColumnDefinition::varchar(self::Name, 255)->nullable(false),
+            self::CreatedAt => ColumnDefinition::timestamptz(self::CreatedAt)->nullable(false),
+            self::DeletedAt => ColumnDefinition::timestamptz(self::DeletedAt)->nullable(true)->default(null),
         };
     }
 }

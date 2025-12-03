@@ -90,7 +90,7 @@ enum UserSchema: string implements ISchema, IHasIndexes
         return match ($this) {
             self::Id => ColumnDefinition::uuid($this)->primaryKey(),
             self::Email => ColumnDefinition::text($this),
-            self::Name => ColumnDefinition::text($this, nullable: true),
+            self::Name => ColumnDefinition::text($this)->nullable(),
         };
     }
 

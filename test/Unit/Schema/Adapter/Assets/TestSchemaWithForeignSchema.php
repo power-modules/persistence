@@ -24,8 +24,8 @@ enum TestSchemaWithForeignSchema: string implements ISchema, IHasForeignKeys
     {
         return match ($this) {
             self::Id => ColumnDefinition::autoincrement(self::Id)->primaryKey(),
-            self::UserId => ColumnDefinition::varchar(self::UserId, 255, false),
-            self::ProductId => ColumnDefinition::varchar(self::ProductId, 255, false),
+            self::UserId => ColumnDefinition::varchar(self::UserId, 255)->nullable(false),
+            self::ProductId => ColumnDefinition::varchar(self::ProductId, 255)->nullable(false),
         };
     }
 

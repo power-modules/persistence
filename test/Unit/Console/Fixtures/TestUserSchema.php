@@ -27,7 +27,7 @@ enum TestUserSchema: string implements ISchema
             self::Id => ColumnDefinition::uuid($this)->primaryKey(),
             self::Name => ColumnDefinition::varchar($this),
             self::Email => ColumnDefinition::varchar($this),
-            self::Age => ColumnDefinition::int($this, length: 11, nullable: true),
+            self::Age => ColumnDefinition::int($this, length: 11)->nullable(),
             self::IsActive => ColumnDefinition::tinyint($this),
             self::CreatedAt => ColumnDefinition::timestamptz($this),
         };

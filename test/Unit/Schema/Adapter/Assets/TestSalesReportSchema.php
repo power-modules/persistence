@@ -30,11 +30,11 @@ enum TestSalesReportSchema: string implements ISchema, IHasIndexes, IHasForeignK
     {
         return match ($this) {
             self::Id => ColumnDefinition::autoincrement(self::Id)->primaryKey(),
-            self::OrderNumber => ColumnDefinition::varchar(self::OrderNumber, 255, false, ''),
-            self::OrderChargedDate => ColumnDefinition::date(self::OrderChargedDate, false),
-            self::OrderChargedTimestamp => ColumnDefinition::timestamptz(self::OrderChargedTimestamp, false),
-            self::ProductId => ColumnDefinition::varchar(self::ProductId, 255, false, ''),
-            self::ItemPrice => ColumnDefinition::decimal(self::ItemPrice, 12, 2, false, 0),
+            self::OrderNumber => ColumnDefinition::varchar(self::OrderNumber, 255)->nullable(false)->default(''),
+            self::OrderChargedDate => ColumnDefinition::date(self::OrderChargedDate)->nullable(false),
+            self::OrderChargedTimestamp => ColumnDefinition::timestamptz(self::OrderChargedTimestamp)->nullable(false),
+            self::ProductId => ColumnDefinition::varchar(self::ProductId, 255)->nullable(false)->default(''),
+            self::ItemPrice => ColumnDefinition::decimal(self::ItemPrice, 12, 2)->nullable(false)->default(0),
             self::CountryOfBuyer => ColumnDefinition::varchar(self::CountryOfBuyer),
         };
     }
