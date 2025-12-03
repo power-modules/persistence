@@ -168,7 +168,7 @@ $repo = new UserRepository($db, $hydrator, $factory);
 
 // 3. Switch Context
 $nsProvider->setNamespace('tenant_123');
-$repo->findAll(); // Executes: SELECT * FROM "tenant_123"."users"
+$repo->findBy(); // Executes: SELECT * FROM "tenant_123"."users"
 ```
 
 ## 🛠️ Console Commands

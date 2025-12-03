@@ -15,10 +15,11 @@
 - **PostgresDatabase**: Concrete implementation handling driver-specifics.
 
 ### Repository Layer (`src/Repository`)
-- **AbstractGenericRepository**: Base class. Implements `save` (upsert), `delete`, `find`, etc.
+- **AbstractGenericRepository**: Base class. Implements `save` (upsert), `deleteBy`, `findBy`, etc.
 - **IStatementFactory** (`src/Repository/Statement/Contract`): Interface for creating SQL statements.
 - **GenericStatementFactory** (`src/Repository/Statement/Factory`): Standard factory. Supports `INamespaceProvider`.
 - **RuntimeNamespaceProvider** (`src/Repository/Statement/Provider`): Allows runtime switching of database schemas (e.g., for multi-tenant apps).
+- **WhereClause** (`src/Repository/Statement`): Encapsulates condition handling and SQL generation for WHERE clauses.
 
 ### Schema & Hydration (`src/Schema`)
 - **ISchema** (`src/Schema/Contract`): Interface for Schema Enums.
@@ -31,12 +32,13 @@
 
 ## Design Decisions & Pitfalls
 1.  **Hydrator Responsibility**: The Hydrator is the sole authority on Entity Identity. The Repository does not use reflection to find IDs; it asks the Hydrator.
-    - *Pitfall*: Forgetting to implement `getId` or `getIdFieldName` correctly will break `save()` and `updateOne()`. Use `TStandardIdentity` for standard cases.
-2.  **Repository `save()` Logic**: The `save` method is an "upsert". It checks if the entity has an ID (via Hydrator). If yes -> `updateOne`, if no -> `insert`.
+    - *Pitfall*: Forgetting to implement `getId` or `getIdFieldName` correctly will break `save()` and `updateBy()`. Use `TStandardIdentity` for standard cases.
+2.  **Repository `save()` Logic**: The `save` method is an "upsert". It checks if the entity has an ID (via Hydrator). If yes -> `update`, if no -> `insert`.
 3.  **Statement Factories**: Never instantiate `SelectStatement` or `UpdateStatement` directly in Repositories. Always use `$this->statementFactory`. This ensures multi-tenancy support works.
 4.  **Database Composition**: We moved away from a monolithic `Database` class. It now delegates to `QueryExecutor` and `TransactionManager`. This improves testability and adheres to ISP.
 5.  **Multi-Tenancy**: We use Postgres Schemas (Namespaces). This is handled by injecting a `RuntimeNamespaceProvider` into the `GenericStatementFactory`.
     - *Decision*: We do not pass the namespace to every repository method. It is a cross-cutting concern handled by the Factory/Provider.
+6.  **Composition over Traits**: We prefer composition (e.g., `WhereClause`) over traits (`TStatementHasParams`) for shared logic in Statements to avoid tight coupling and hidden dependencies.
 
 ## Developer Workflows
 - **Testing**: Run `make test` (PHPUnit).
@@ -57,7 +59,7 @@ $repo = new UserRepository($db, $hydrator, $factory);
 
 // 3. Runtime Context Switch
 $nsProvider->setNamespace('tenant_123');
-$repo->findAll(); // Executes: SELECT * FROM "tenant_123"."users"
+$repo->findBy(); // Executes: SELECT * FROM "tenant_123"."users"
 ```
 
 ### Hydrator Implementation
