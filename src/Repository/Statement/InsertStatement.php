@@ -81,13 +81,13 @@ class InsertStatement implements IInsertStatement
     {
         $setClauses = array_map(
             fn (string $col) => sprintf('"%s" = EXCLUDED."%s"', $col, $col),
-            $updateColumns
+            $updateColumns,
         );
 
         $this->onConflict = sprintf(
             ' ON CONFLICT ("%s") DO UPDATE SET %s',
             implode('", "', $conflictColumns),
-            implode(', ', $setClauses)
+            implode(', ', $setClauses),
         );
 
         return $this;
