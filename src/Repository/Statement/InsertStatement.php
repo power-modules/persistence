@@ -66,8 +66,30 @@ class InsertStatement implements IInsertStatement
         return $this->insertBinds;
     }
 
-    public function ignoreDuplicates(): void
+    public function ignoreDuplicates(): static
     {
         $this->onConflict = sprintf(' ON CONFLICT DO NOTHING');
+
+        return $this;
+    }
+
+    /**
+     * @param array<string> $conflictColumns
+     * @param array<string> $updateColumns
+     */
+    public function onConflictUpdate(array $conflictColumns, array $updateColumns): static
+    {
+        $setClauses = array_map(
+            fn (string $col) => sprintf('"%s" = EXCLUDED."%s"', $col, $col),
+            $updateColumns
+        );
+
+        $this->onConflict = sprintf(
+            ' ON CONFLICT ("%s") DO UPDATE SET %s',
+            implode('", "', $conflictColumns),
+            implode(', ', $setClauses)
+        );
+
+        return $this;
     }
 }

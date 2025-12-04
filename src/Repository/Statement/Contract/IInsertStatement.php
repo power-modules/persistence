@@ -18,4 +18,12 @@ interface IInsertStatement
      * @return array<Bind>
      */
     public function getInsertBinds(): array;
+
+    public function ignoreDuplicates(): static;
+
+    /**
+     * @param array<string> $conflictColumns
+     * @param array<string> $updateColumns
+     */
+    public function onConflictUpdate(array $conflictColumns, array $updateColumns): static;
 }
