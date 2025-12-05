@@ -15,7 +15,7 @@ enum Operator: string
     case In = 'IN';
     case NotIn = 'NOT IN';
     case IsNull = 'IS NULL';
-    case NotNull = 'NOT NULL';
+    case NotNull = 'IS NOT NULL';
     case Like = 'LIKE';
     case NotLike = 'NOT LIKE';
     case Ilike = 'ILIKE';
