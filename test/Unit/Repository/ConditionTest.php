@@ -27,4 +27,13 @@ final class ConditionTest extends TestCase
 
         new Condition('col_a', Operator::Equals, null);
     }
+
+    public function testExists(): void
+    {
+        $condition = Condition::exists('SELECT 1 FROM users WHERE id = 1');
+
+        self::assertSame('', $condition->column);
+        self::assertSame(Operator::Exists, $condition->operator);
+        self::assertSame('SELECT 1 FROM users WHERE id = 1', $condition->value);
+    }
 }

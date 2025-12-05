@@ -79,4 +79,12 @@ final class OperatorTest extends TestCase
         self::assertTrue(Operator::IsNull->validate($value), Operator::IsNull->name . ' operator has failed.');
         self::assertTrue(Operator::NotNull->validate($value), Operator::NotNull->name . ' operator has failed.');
     }
+
+    public function testExistsOperator(): void
+    {
+        self::assertTrue(Operator::Exists->validate('SELECT 1'), 'Exists operator should accept strings.');
+        self::assertFalse(Operator::Exists->validate(1), 'Exists operator should not accept integers.');
+        self::assertFalse(Operator::Exists->validate(null), 'Exists operator should not accept null.');
+        self::assertFalse(Operator::Exists->validate([]), 'Exists operator should not accept arrays.');
+    }
 }

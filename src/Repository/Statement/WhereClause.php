@@ -75,7 +75,7 @@ class WhereClause
 
     private function processBind(Condition $condition): void
     {
-        if (in_array($condition->operator, [Operator::IsNull, Operator::NotNull], true)) {
+        if (in_array($condition->operator, [Operator::IsNull, Operator::NotNull, Operator::Exists], true)) {
             return;
         }
 
@@ -97,6 +97,10 @@ class WhereClause
 
     private function buildConditionSql(Condition $condition, int &$bindIndex): string
     {
+        if ($condition->operator === Operator::Exists) {
+            return sprintf('EXISTS (%s)', $condition->value);
+        }
+
         if (in_array($condition->operator, [Operator::IsNull, Operator::NotNull], true)) {
             return sprintf('%s %s', $condition->column, $condition->operator->value);
         }

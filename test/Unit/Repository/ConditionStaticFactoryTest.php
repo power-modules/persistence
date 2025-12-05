@@ -49,6 +49,14 @@ final class ConditionStaticFactoryTest extends TestCase
         self::assertSame(Operator::GreaterEquals, $condition->operator);
     }
 
+    public function testExists(): void
+    {
+        $condition = Condition::exists('SELECT 1');
+        self::assertSame('', $condition->column);
+        self::assertSame(Operator::Exists, $condition->operator);
+        self::assertSame('SELECT 1', $condition->value);
+    }
+
     public function testLess(): void
     {
         $condition = Condition::less('u.age', 18);

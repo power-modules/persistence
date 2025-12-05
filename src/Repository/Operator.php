@@ -20,6 +20,7 @@ enum Operator: string
     case NotLike = 'NOT LIKE';
     case Ilike = 'ILIKE';
     case NotIlike = 'NOT ILIKE';
+    case Exists = 'EXISTS';
 
     public function validate(mixed $value): bool
     {
@@ -33,11 +34,12 @@ enum Operator: string
             self::Like,
             self::NotLike,
             self::Ilike,
-            self::NotIlike => is_scalar($value) === true,
+            self::NotIlike => is_scalar($value) || $value instanceof \DateTimeInterface,
             self::In,
-            self::NotIn => is_array($value) === true,
+            self::NotIn => is_array($value),
             self::IsNull,
             self::NotNull => $value === null,
+            self::Exists => is_string($value),
         };
     }
 }

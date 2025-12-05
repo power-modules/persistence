@@ -101,4 +101,9 @@ final class Condition
     {
         return new self($column, Operator::NotIlike, $value);
     }
+
+    public static function exists(string $subquery): self
+    {
+        return new self('', Operator::Exists, $subquery);
+    }
 }

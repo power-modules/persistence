@@ -80,11 +80,16 @@ final readonly class PostgresSchemaQueryGenerator implements ISchemaQueryGenerat
             }
         }
 
+        $primaryKeyClause = '';
+        if (!empty($primaryKeys)) {
+            $primaryKeyClause = sprintf(', PRIMARY KEY ("%s")', implode('", "', $primaryKeys));
+        }
+
         $createTableQuery = sprintf(
-            'CREATE TABLE "%s" (%s, PRIMARY KEY ("%s")',
+            'CREATE TABLE "%s" (%s%s',
             $tableName,
             implode(', ', $this->getColumnsDefinition($schema)),
-            implode('", "', $primaryKeys),
+            $primaryKeyClause,
         );
 
         if ($schema instanceof IHasForeignKeys) {
