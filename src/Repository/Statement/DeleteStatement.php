@@ -40,6 +40,16 @@ class DeleteStatement implements IDeleteStatement
     }
 
     /**
+     * @param array<Bind> $binds
+     */
+    public function addRawCondition(string $sql, array $binds = []): static
+    {
+        $this->getWhereClause()->addRaw($sql, $binds);
+
+        return $this;
+    }
+
+    /**
      * @return array<Bind>
      */
     public function getWhereBinds(): array

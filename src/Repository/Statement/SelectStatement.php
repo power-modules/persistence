@@ -171,6 +171,16 @@ class SelectStatement implements ISelectStatement
     }
 
     /**
+     * @param array<Bind> $binds
+     */
+    public function addRawCondition(string $sql, array $binds = []): static
+    {
+        $this->getWhereClause()->addRaw($sql, $binds);
+
+        return $this;
+    }
+
+    /**
      * @return array<Bind>
      */
     public function getWhereBinds(): array

@@ -35,4 +35,21 @@ readonly class Bind
 
         return new self($column, $name, $value, $type);
     }
+
+    /**
+     * Create a bind for JSON/JSONB values.
+     *
+     * If the value is an array, it is automatically json_encode()'d.
+     * String values are passed through as-is (assumed to be pre-encoded JSON).
+     *
+     * @param array<mixed>|string $value
+     */
+    public static function json(string $column, string $name, array|string $value): self
+    {
+        if (is_array($value)) {
+            $value = json_encode($value, JSON_THROW_ON_ERROR);
+        }
+
+        return new self($column, $name, $value, PDO::PARAM_STR);
+    }
 }

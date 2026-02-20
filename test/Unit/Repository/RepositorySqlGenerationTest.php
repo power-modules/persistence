@@ -9,6 +9,7 @@ use Modular\Persistence\Repository\AbstractGenericRepository;
 use Modular\Persistence\Repository\Condition;
 use Modular\Persistence\Repository\Join;
 use Modular\Persistence\Repository\JoinType;
+use Modular\Persistence\Repository\Statement\Contract\Bind;
 use Modular\Persistence\Test\Unit\Repository\Fixture\Employee;
 use Modular\Persistence\Test\Unit\Repository\Fixture\Hydrator;
 use PDOStatement;
@@ -67,5 +68,86 @@ class RepositorySqlGenerationTest extends TestCase
         };
 
         $repository->findByDepartment('Engineering');
+    }
+
+    public function testFindByWithRawConditionProducesCorrectSql(): void
+    {
+        $pdoStatement = $this->createStub(PDOStatement::class);
+        $pdoStatement->method('execute')->willReturn(true);
+        $pdoStatement->method('fetchAll')->willReturn([]);
+
+        $database = $this->createMock(IDatabase::class);
+        $database->expects($this->once())
+            ->method('prepare')
+            ->with($this->callback(function (string $sql) {
+                $sql = (string) preg_replace('/\s+/', ' ', $sql);
+
+                // Should have both standard and raw conditions
+                return str_contains($sql, 'WHERE (status = :w_0_status) AND ("metadata" @> :kw::jsonb)')
+                    && str_contains($sql, 'FROM "employees"');
+            }))
+            ->willReturn($pdoStatement);
+
+        $repository = new /** @extends AbstractGenericRepository<Employee> */ class ($database, new Hydrator()) extends AbstractGenericRepository {
+            protected function getTableName(): string
+            {
+                return 'employees';
+            }
+
+            /**
+             * @return array<int, array<string, mixed>>
+             */
+            public function findByMetadata(string $status, string $jsonFilter): array
+            {
+                $stmt = $this->getSelectStatement();
+                $stmt->addCondition(Condition::equals('status', $status));
+                $stmt->addRawCondition('"metadata" @> :kw::jsonb', [
+                    Bind::json('metadata', ':kw', $jsonFilter),
+                ]);
+                $stmt->all();
+
+                return $this->select($stmt);
+            }
+        };
+
+        $repository->findByMetadata('published', '{"lang":"en"}');
+    }
+
+    public function testCountWithRawConditionProducesCorrectSql(): void
+    {
+        $pdoStatement = $this->createStub(PDOStatement::class);
+        $pdoStatement->method('execute')->willReturn(true);
+        $pdoStatement->method('fetch')->willReturn(['total_rows' => 5]);
+
+        $database = $this->createMock(IDatabase::class);
+        $database->expects($this->once())
+            ->method('prepare')
+            ->with($this->callback(function (string $sql) {
+                $sql = (string) preg_replace('/\s+/', ' ', $sql);
+
+                return str_contains($sql, 'SELECT COUNT(*) as total_rows FROM "employees"')
+                    && str_contains($sql, 'WHERE ("metadata" @> :kw::jsonb)');
+            }))
+            ->willReturn($pdoStatement);
+
+        $repository = new /** @extends AbstractGenericRepository<Employee> */ class ($database, new Hydrator()) extends AbstractGenericRepository {
+            protected function getTableName(): string
+            {
+                return 'employees';
+            }
+
+            public function countByMetadata(string $jsonFilter): int
+            {
+                $stmt = $this->getSelectStatement();
+                $stmt->addRawCondition('"metadata" @> :kw::jsonb', [
+                    Bind::json('metadata', ':kw', $jsonFilter),
+                ]);
+
+                return $this->count([], $stmt);
+            }
+        };
+
+        $count = $repository->countByMetadata('{"status":"active"}');
+        self::assertSame(5, $count);
     }
 }

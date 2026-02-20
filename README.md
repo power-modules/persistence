@@ -228,6 +228,55 @@ Condition::exists('SELECT 1 FROM orders WHERE orders.user_id = users.id');
 new Condition(UserSchema::Role, Operator::Equals, 'admin', ConditionXor::Or);
 ```
 
+### JSONB Conditions
+
+PostgreSQL JSONB operators are supported natively:
+
+```php
+// Containment: metadata @> '{"status":"active"}'::jsonb
+Condition::jsonContains(ArticleSchema::Metadata, '{"status":"active"}');
+
+// Reverse containment: metadata <@ '{"status":"active","lang":"en"}'::jsonb
+Condition::jsonContainedBy(ArticleSchema::Metadata, '{"status":"active","lang":"en"}');
+
+// Key existence: metadata ? 'status'
+Condition::jsonHasKey(ArticleSchema::Metadata, 'status');
+
+// Any key existence: metadata ?| array['status','lang']
+Condition::jsonHasAnyKey(ArticleSchema::Metadata, ['status', 'lang']);
+
+// All keys existence: metadata ?& array['status','lang']
+Condition::jsonHasAllKeys(ArticleSchema::Metadata, ['status', 'lang']);
+
+// JSON path expression with standard operators (column expression is NOT quoted)
+Condition::jsonPath('"metadata"->>\'status\'', Operator::Equals, 'active');
+Condition::jsonPath('"metadata"->>\'title\'', Operator::Ilike, 'search term');
+```
+
+### Raw SQL Conditions
+
+For complex expressions that cannot be represented via `Condition` (e.g. custom casts, functions, or advanced JSONB paths), use `addRawCondition()` on any statement:
+
+```php
+use Modular\Persistence\Repository\Statement\Contract\Bind;
+
+$select = $this->getSelectStatement();
+$select->addCondition(Condition::ilike(ArticleSchema::Title, 'search'));
+$select->addRawCondition(
+    "\"metadata\"->'keywords' @> :kw_filter::jsonb",
+    [Bind::json('keywords', ':kw_filter', ['php', 'jsonb'])],
+);
+$select->setLimit(20);
+$select->setStart(0);
+
+// Works seamlessly with both select and count
+$data = $this->select($select);
+$total = $this->count([], $select);
+```
+
+`addRawCondition()` is available on `SelectStatement`, `UpdateStatement`, and `DeleteStatement`. Raw conditions are AND-joined with standard conditions. `Bind::json()` auto-encodes arrays to JSON strings.
+```
+
 ## 🔗 Joins
 
 ```php
@@ -385,6 +434,30 @@ The `PostgresSchemaQueryGenerator` generates DDL from schema enums, including `C
 
 ```bash
 php bin/console persistence:generate-schema App\\Schema\\UserSchema
+```
+
+### Expression Indexes
+
+For JSONB path indexes or functional indexes, use `Index::expression()` to avoid automatic identifier quoting:
+
+```php
+public static function getIndexes(): array
+{
+    return [
+        // Full-column GIN index (column quoted as identifier)
+        Index::make([self::Metadata], type: IndexType::Gin),
+        
+        // Expression-based GIN index (expression NOT quoted)
+        Index::expression("(\"metadata\"->'keywords')", IndexType::Gin),
+        
+        // Functional index
+        Index::expression("(lower(\"email\"))", IndexType::Btree, unique: true),
+    ];
+}
+// Generates:
+// CREATE INDEX ... USING GIN ("metadata");
+// CREATE INDEX ... USING GIN (("metadata"->'keywords'));
+// CREATE UNIQUE INDEX ... ((lower("email")));
 ```
 
 ## 🛠️ Console Commands

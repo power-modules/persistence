@@ -22,6 +22,13 @@ enum Operator: string
     case NotIlike = 'NOT ILIKE';
     case Exists = 'EXISTS';
 
+    // JSONB operators
+    case JsonContains = '@>';
+    case JsonContainedBy = '<@';
+    case JsonHasKey = '?';
+    case JsonHasAnyKey = '?|';
+    case JsonHasAllKeys = '?&';
+
     public function validate(mixed $value): bool
     {
         return match ($this) {
@@ -40,6 +47,11 @@ enum Operator: string
             self::IsNull,
             self::NotNull => $value === null,
             self::Exists => is_string($value),
+            self::JsonContains,
+            self::JsonContainedBy,
+            self::JsonHasKey => is_string($value),
+            self::JsonHasAnyKey,
+            self::JsonHasAllKeys => is_array($value) && array_is_list($value),
         };
     }
 }

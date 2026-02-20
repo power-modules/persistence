@@ -27,13 +27,17 @@ final readonly class PostgresSchemaQueryGenerator implements ISchemaQueryGenerat
                 $unique = $tableIndex->isUnique ? ' UNIQUE ' : ' ';
                 $using = $this->getUsingClause($tableIndex->type);
 
+                $columnsClause = $tableIndex->isExpression
+                    ? $tableIndex->columns[0]
+                    : sprintf('"%s"', implode('", "', $tableIndex->columns));
+
                 $indexQuery = sprintf(
-                    'CREATE%sINDEX "%s" ON "%s"%s("%s");',
+                    'CREATE%sINDEX "%s" ON "%s"%s(%s);',
                     $unique,
                     $tableIndex->name ?? $tableIndex->makeName($tableName),
                     $tableName,
                     $using,
-                    implode('", "', $tableIndex->columns),
+                    $columnsClause,
                 );
 
                 yield $indexQuery;

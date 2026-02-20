@@ -90,4 +90,57 @@ final class IndexTest extends TestCase
 
         self::assertCount(count(IndexType::cases()), array_unique($names));
     }
+
+    // --- Expression index tests (Solution C) ---
+
+    public function testExpressionFactoryCreatesExpressionIndex(): void
+    {
+        $index = Index::expression("(\"metadata\"->'keywords')", IndexType::Gin);
+
+        self::assertTrue($index->isExpression);
+        self::assertSame(["(\"metadata\"->'keywords')"], $index->columns);
+        self::assertSame(IndexType::Gin, $index->type);
+        self::assertFalse($index->isUnique);
+        self::assertNull($index->name);
+    }
+
+    public function testExpressionFactoryWithCustomName(): void
+    {
+        $index = Index::expression(
+            "(\"metadata\"->'keywords')",
+            IndexType::Gin,
+            name: 'idx_metadata_keywords',
+        );
+
+        self::assertSame('idx_metadata_keywords', $index->name);
+    }
+
+    public function testExpressionFactoryWithUnique(): void
+    {
+        $index = Index::expression(
+            "(lower(\"email\"))",
+            IndexType::Btree,
+            unique: true,
+        );
+
+        self::assertTrue($index->isUnique);
+        self::assertTrue($index->isExpression);
+    }
+
+    public function testMakeFactoryDefaultsIsExpressionFalse(): void
+    {
+        $index = new Index(['col_a'], null, false, IndexType::Gin);
+
+        self::assertFalse($index->isExpression);
+    }
+
+    public function testExpressionMakeNameIsConsistent(): void
+    {
+        $index = Index::expression("(\"data\"->'key')", IndexType::Gin);
+        $name1 = $index->makeName('articles');
+        $name2 = $index->makeName('articles');
+
+        self::assertSame($name1, $name2);
+        self::assertStringStartsWith('idx_articles_', $name1);
+    }
 }

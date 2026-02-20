@@ -106,4 +106,63 @@ final class Condition
     {
         return new self('', Operator::Exists, $subquery);
     }
+
+    /**
+     * JSONB containment: column @> value::jsonb
+     *
+     * @param string $jsonValue Pre-encoded JSON string
+     */
+    public static function jsonContains(BackedEnum|string $column, string $jsonValue): self
+    {
+        return new self($column, Operator::JsonContains, $jsonValue);
+    }
+
+    /**
+     * Reverse JSONB containment: column <@ value::jsonb
+     *
+     * @param string $jsonValue Pre-encoded JSON string
+     */
+    public static function jsonContainedBy(BackedEnum|string $column, string $jsonValue): self
+    {
+        return new self($column, Operator::JsonContainedBy, $jsonValue);
+    }
+
+    /**
+     * JSONB key existence: column ? key
+     */
+    public static function jsonHasKey(BackedEnum|string $column, string $key): self
+    {
+        return new self($column, Operator::JsonHasKey, $key);
+    }
+
+    /**
+     * JSONB any key existence: column ?| array['key1','key2']
+     *
+     * @param array<string> $keys
+     */
+    public static function jsonHasAnyKey(BackedEnum|string $column, array $keys): self
+    {
+        return new self($column, Operator::JsonHasAnyKey, $keys);
+    }
+
+    /**
+     * JSONB all keys existence: column ?& array['key1','key2']
+     *
+     * @param array<string> $keys
+     */
+    public static function jsonHasAllKeys(BackedEnum|string $column, array $keys): self
+    {
+        return new self($column, Operator::JsonHasAllKeys, $keys);
+    }
+
+    /**
+     * Use a raw SQL expression as the column (e.g. JSONB path extraction).
+     *
+     * The expression is NOT quoted as an identifier — it is used verbatim.
+     * Example: Condition::jsonPath('"metadata"->>\'{$key}\'', Operator::Equals, 'active')
+     */
+    public static function jsonPath(string $expression, Operator $operator, mixed $value): self
+    {
+        return new self($expression, $operator, $value);
+    }
 }

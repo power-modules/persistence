@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modular\Persistence\Test\Unit\Repository;
 
 use Modular\Persistence\Repository\Condition;
+use Modular\Persistence\Repository\ConditionXor;
 use Modular\Persistence\Repository\Operator;
 use Modular\Persistence\Test\Unit\Repository\Fixture\Schema;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -130,5 +131,76 @@ final class ConditionStaticFactoryTest extends TestCase
         $condition = Condition::notIlike('u.name', '%doe%');
         self::assertSame('u.name', $condition->column);
         self::assertSame(Operator::NotIlike, $condition->operator);
+    }
+
+    // --- JSONB Condition factories ---
+
+    public function testJsonContains(): void
+    {
+        $condition = Condition::jsonContains('metadata', '{"status":"active"}');
+        self::assertSame('metadata', $condition->column);
+        self::assertSame(Operator::JsonContains, $condition->operator);
+        self::assertSame('{"status":"active"}', $condition->value);
+    }
+
+    public function testJsonContainsWithEnum(): void
+    {
+        $condition = Condition::jsonContains(Schema::Name, '{"x":1}');
+        self::assertSame('name', $condition->column);
+        self::assertSame(Operator::JsonContains, $condition->operator);
+    }
+
+    public function testJsonContainedBy(): void
+    {
+        $condition = Condition::jsonContainedBy('metadata', '{"status":"active","lang":"en"}');
+        self::assertSame('metadata', $condition->column);
+        self::assertSame(Operator::JsonContainedBy, $condition->operator);
+        self::assertSame('{"status":"active","lang":"en"}', $condition->value);
+    }
+
+    public function testJsonHasKey(): void
+    {
+        $condition = Condition::jsonHasKey('metadata', 'status');
+        self::assertSame('metadata', $condition->column);
+        self::assertSame(Operator::JsonHasKey, $condition->operator);
+        self::assertSame('status', $condition->value);
+    }
+
+    public function testJsonHasAnyKey(): void
+    {
+        $condition = Condition::jsonHasAnyKey('metadata', ['status', 'lang']);
+        self::assertSame('metadata', $condition->column);
+        self::assertSame(Operator::JsonHasAnyKey, $condition->operator);
+        self::assertSame(['status', 'lang'], $condition->value);
+    }
+
+    public function testJsonHasAllKeys(): void
+    {
+        $condition = Condition::jsonHasAllKeys('metadata', ['status', 'lang']);
+        self::assertSame('metadata', $condition->column);
+        self::assertSame(Operator::JsonHasAllKeys, $condition->operator);
+        self::assertSame(['status', 'lang'], $condition->value);
+    }
+
+    public function testJsonPath(): void
+    {
+        $condition = Condition::jsonPath('"metadata"->>\'status\'', Operator::Equals, 'active');
+        self::assertSame('"metadata"->>\'status\'', $condition->column);
+        self::assertSame(Operator::Equals, $condition->operator);
+        self::assertSame('active', $condition->value);
+    }
+
+    public function testJsonPathWithIlike(): void
+    {
+        $condition = Condition::jsonPath('"metadata"->>\'title\'', Operator::Ilike, 'test');
+        self::assertSame('"metadata"->>\'title\'', $condition->column);
+        self::assertSame(Operator::Ilike, $condition->operator);
+        self::assertSame('test', $condition->value);
+    }
+
+    public function testJsonPathDefaultXorIsAnd(): void
+    {
+        $condition = Condition::jsonPath('"data"->>\'key\'', Operator::Equals, 'val');
+        self::assertSame(ConditionXor::And, $condition->xor);
     }
 }

@@ -17,6 +17,7 @@ final readonly class Index
         public ?string $name,
         public bool $isUnique,
         public IndexType $type = IndexType::Btree,
+        public bool $isExpression = false,
     ) {
         if (count($columns) === 0) {
             throw new InvalidArgumentException('Column list cannot be empty.');
@@ -42,6 +43,23 @@ final readonly class Index
         );
 
         return new self($columnNames, $name, $unique, $type);
+    }
+
+    /**
+     * Create an expression-based index (e.g. for JSONB path expressions).
+     *
+     * The expression is stored verbatim and NOT quoted as an identifier.
+     * The caller is responsible for quoting column names within the expression.
+     *
+     * Example: Index::expression("(\"metadata\"->>'keywords')", IndexType::Gin)
+     */
+    public static function expression(
+        string $expression,
+        IndexType $type = IndexType::Gin,
+        bool $unique = false,
+        ?string $name = null,
+    ): self {
+        return new self([$expression], $name, $unique, $type, isExpression: true);
     }
 
     public function makeName(string $tableName): string

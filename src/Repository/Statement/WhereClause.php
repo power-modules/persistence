@@ -20,6 +20,11 @@ class WhereClause
      */
     private array $binds = [];
 
+    /**
+     * @var array<array{sql: string, binds: array<Bind>}>
+     */
+    private array $rawConditions = [];
+
     private int $paramIndex = 0;
 
     public function add(Condition ...$conditions): self
@@ -37,9 +42,24 @@ class WhereClause
         return $this;
     }
 
+    /**
+     * Add a raw SQL condition with optional bind values.
+     *
+     * The SQL fragment is included as an AND-joined group in the WHERE clause.
+     * Use this for expressions that cannot be represented via Condition (e.g. JSONB operators with casts).
+     *
+     * @param array<Bind> $binds
+     */
+    public function addRaw(string $sql, array $binds = []): self
+    {
+        $this->rawConditions[] = ['sql' => $sql, 'binds' => $binds];
+
+        return $this;
+    }
+
     public function toSql(): string
     {
-        if (count($this->conditions) === 0) {
+        if (count($this->conditions) === 0 && count($this->rawConditions) === 0) {
             return '';
         }
 
@@ -62,6 +82,10 @@ class WhereClause
             $groups[] = implode(' ', $groupSql);
         }
 
+        foreach ($this->rawConditions as $raw) {
+            $groups[] = $raw['sql'];
+        }
+
         return sprintf(' WHERE (%s)', implode(') AND (', $groups));
     }
 
@@ -70,7 +94,12 @@ class WhereClause
      */
     public function getBinds(): array
     {
-        return $this->binds;
+        $rawBinds = [];
+        foreach ($this->rawConditions as $raw) {
+            $rawBinds = array_merge($rawBinds, $raw['binds']);
+        }
+
+        return array_merge($this->binds, $rawBinds);
     }
 
     private function processBind(Condition $condition): void
@@ -83,6 +112,15 @@ class WhereClause
             foreach ($condition->value as $val) {
                 $this->binds[] = $this->createBind($condition->column, $val);
             }
+
+            return;
+        }
+
+        if (in_array($condition->operator, [Operator::JsonHasAnyKey, Operator::JsonHasAllKeys], true)) {
+            /** @var array<string> $keys */
+            $keys = $condition->value;
+            $pgArray = '{' . implode(',', $keys) . '}';
+            $this->binds[] = $this->createBind($condition->column, $pgArray);
 
             return;
         }
@@ -112,6 +150,18 @@ class WhereClause
             }
 
             return sprintf('%s %s (%s)', $condition->column, $condition->operator->value, implode(',', $placeholders));
+        }
+
+        if (in_array($condition->operator, [Operator::JsonContains, Operator::JsonContainedBy], true)) {
+            return sprintf('%s %s %s::jsonb', $condition->column, $condition->operator->value, $this->binds[$bindIndex++]->name);
+        }
+
+        if ($condition->operator === Operator::JsonHasKey) {
+            return sprintf('%s %s %s', $condition->column, $condition->operator->value, $this->binds[$bindIndex++]->name);
+        }
+
+        if (in_array($condition->operator, [Operator::JsonHasAnyKey, Operator::JsonHasAllKeys], true)) {
+            return sprintf('%s %s %s::text[]', $condition->column, $condition->operator->value, $this->binds[$bindIndex++]->name);
         }
 
         return sprintf('%s %s %s', $condition->column, $condition->operator->value, $this->binds[$bindIndex++]->name);

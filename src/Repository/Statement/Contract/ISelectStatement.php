@@ -16,6 +16,14 @@ interface ISelectStatement
     public function addJoin(Join ...$joins): static;
     public function unshiftJoin(Join ...$joins): static;
     public function addCondition(Condition ...$conditions): static;
+
+    /**
+     * Add a raw SQL condition with optional bind values.
+     *
+     * @param array<Bind> $binds
+     */
+    public function addRawCondition(string $sql, array $binds = []): static;
+
     public function addColumns(string ...$columns): self;
     public function addOrder(string $field, string $dir): static;
     public function addGroupBy(string $field): static;

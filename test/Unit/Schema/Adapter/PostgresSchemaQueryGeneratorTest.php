@@ -8,6 +8,7 @@ use Modular\Persistence\Schema\Adapter\PostgresSchemaQueryGenerator;
 use Modular\Persistence\Schema\Contract\ISchema;
 use Modular\Persistence\Test\Unit\Schema\Adapter\Assets\TestSalesReportSchema;
 use Modular\Persistence\Test\Unit\Schema\Adapter\Assets\TestSchemaNoPrimaryKey;
+use Modular\Persistence\Test\Unit\Schema\Adapter\Assets\TestSchemaWithExpressionIndex;
 use Modular\Persistence\Test\Unit\Schema\Adapter\Assets\TestSchemaWithForeignSchema;
 use Modular\Persistence\Test\Unit\Schema\Adapter\Assets\TestSchemaWithIndexTypes;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -119,5 +120,40 @@ final class PostgresSchemaQueryGeneratorTest extends TestCase
     private function getSchemaWithForeignSchema(): ISchema
     {
         return TestSchemaWithForeignSchema::Id;
+    }
+
+    public function testGenerateShouldHandleExpressionIndex(): void
+    {
+        $generator = new PostgresSchemaQueryGenerator();
+        $queries = [];
+
+        foreach ($generator->generate(TestSchemaWithExpressionIndex::Id) as $query) {
+            $queries[] = $query;
+        }
+
+        // CREATE TABLE + regular GIN index + expression GIN index
+        self::assertCount(3, $queries);
+
+        // Regular column index — column quoted as identifier
+        self::assertStringContainsString('USING GIN ("metadata")', $queries[1]);
+
+        // Expression index — expression NOT quoted as identifier
+        self::assertStringContainsString('USING GIN (("metadata"->\'keywords\'))', $queries[2]);
+        self::assertStringContainsString('"idx_metadata_keywords"', $queries[2]);
+    }
+
+    public function testExpressionIndexDoesNotQuoteExpression(): void
+    {
+        $generator = new PostgresSchemaQueryGenerator();
+        $queries = [];
+
+        foreach ($generator->generate(TestSchemaWithExpressionIndex::Id) as $query) {
+            $queries[] = $query;
+        }
+
+        // The expression index query should NOT have the expression wrapped in double quotes
+        // It should be: ("metadata"->'keywords') not ("("metadata"->'keywords')")
+        $expressionQuery = $queries[2];
+        self::assertStringNotContainsString('("("metadata"', $expressionQuery);
     }
 }
