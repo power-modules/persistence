@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Modular\Persistence\Test\Unit\Schema;
 
 use Modular\Persistence\Schema\TStandardIdentity;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(TStandardIdentity::class)]
 class TStandardIdentityTest extends TestCase
 {
     public function testGetId(): void

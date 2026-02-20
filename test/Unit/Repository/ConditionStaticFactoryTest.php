@@ -7,8 +7,10 @@ namespace Modular\Persistence\Test\Unit\Repository;
 use Modular\Persistence\Repository\Condition;
 use Modular\Persistence\Repository\Operator;
 use Modular\Persistence\Test\Unit\Repository\Fixture\Schema;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(Condition::class)]
 final class ConditionStaticFactoryTest extends TestCase
 {
     public function testEqualsWithEnum(): void

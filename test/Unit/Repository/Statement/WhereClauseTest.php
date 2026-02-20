@@ -6,8 +6,10 @@ namespace Modular\Persistence\Test\Unit\Repository\Statement;
 
 use Modular\Persistence\Repository\Condition;
 use Modular\Persistence\Repository\Statement\WhereClause;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(WhereClause::class)]
 final class WhereClauseTest extends TestCase
 {
     public function testEmptyWhereClause(): void

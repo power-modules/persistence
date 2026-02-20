@@ -6,8 +6,10 @@ namespace Modular\Persistence\Test\Unit\Schema;
 
 use InvalidArgumentException;
 use Modular\Persistence\Schema\Definition\Index;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(Index::class)]
 final class IndexTest extends TestCase
 {
     public function testItShouldGenerateIndexName(): void

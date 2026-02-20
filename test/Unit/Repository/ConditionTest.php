@@ -7,8 +7,10 @@ namespace Modular\Persistence\Test\Unit\Repository;
 use InvalidArgumentException;
 use Modular\Persistence\Repository\Condition;
 use Modular\Persistence\Repository\Operator;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(Condition::class)]
 final class ConditionTest extends TestCase
 {
     public function testItValidatesValueAgainstOperator(): void

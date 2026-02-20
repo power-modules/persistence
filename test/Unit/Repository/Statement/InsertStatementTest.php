@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Modular\Persistence\Test\Unit\Repository\Statement;
 
 use Modular\Persistence\Repository\Statement\InsertStatement;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(InsertStatement::class)]
 class InsertStatementTest extends TestCase
 {
     public function testBasicInsert(): void

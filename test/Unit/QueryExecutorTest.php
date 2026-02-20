@@ -9,8 +9,10 @@ use Modular\Persistence\Exception\QueryException;
 use PDO;
 use PDOException;
 use PDOStatement;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(QueryExecutor::class)]
 class QueryExecutorTest extends TestCase
 {
     public function testExecSuccess(): void
@@ -46,7 +48,7 @@ class QueryExecutorTest extends TestCase
     public function testPrepareSuccess(): void
     {
         $pdo = $this->createMock(PDO::class);
-        $statement = $this->createMock(PDOStatement::class);
+        $statement = $this->createStub(PDOStatement::class);
         $pdo->expects(self::once())->method('prepare')->with('SELECT * FROM table', [])->willReturn($statement);
 
         $executor = new QueryExecutor($pdo);
@@ -66,7 +68,7 @@ class QueryExecutorTest extends TestCase
     public function testQuerySuccess(): void
     {
         $pdo = $this->createMock(PDO::class);
-        $statement = $this->createMock(PDOStatement::class);
+        $statement = $this->createStub(PDOStatement::class);
         $pdo->expects(self::once())->method('query')->with('SELECT * FROM table', PDO::FETCH_ASSOC)->willReturn($statement);
 
         $executor = new QueryExecutor($pdo);

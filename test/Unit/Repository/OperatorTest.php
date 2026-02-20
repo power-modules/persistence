@@ -6,9 +6,11 @@ namespace Modular\Persistence\Test\Unit\Repository;
 
 use Iterator;
 use Modular\Persistence\Repository\Operator;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(Operator::class)]
 final class OperatorTest extends TestCase
 {
     public static function scalarValuesProvider(): Iterator

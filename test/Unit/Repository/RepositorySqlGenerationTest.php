@@ -12,13 +12,15 @@ use Modular\Persistence\Repository\JoinType;
 use Modular\Persistence\Test\Unit\Repository\Fixture\Employee;
 use Modular\Persistence\Test\Unit\Repository\Fixture\Hydrator;
 use PDOStatement;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(AbstractGenericRepository::class)]
 class RepositorySqlGenerationTest extends TestCase
 {
     public function testFindWithAliasAndJoin(): void
     {
-        $pdoStatement = $this->createMock(PDOStatement::class);
+        $pdoStatement = $this->createStub(PDOStatement::class);
         $pdoStatement->method('execute')->willReturn(true);
         $pdoStatement->method('fetchAll')->willReturn([]);
 

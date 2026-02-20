@@ -8,8 +8,10 @@ use Modular\Persistence\Database\TransactionManager;
 use Modular\Persistence\Exception\PersistenceException;
 use PDO;
 use PDOException;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(TransactionManager::class)]
 class TransactionManagerTest extends TestCase
 {
     public function testBeginTransactionSuccess(): void

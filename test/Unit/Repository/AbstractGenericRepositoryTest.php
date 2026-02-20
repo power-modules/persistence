@@ -6,6 +6,7 @@ namespace Modular\Persistence\Test\Unit\Repository;
 
 use DateTimeImmutable;
 use Modular\Persistence\Database\Database;
+use Modular\Persistence\Repository\AbstractGenericRepository;
 use Modular\Persistence\Repository\Condition;
 use Modular\Persistence\Repository\Statement\SelectStatement;
 use Modular\Persistence\Schema\Adapter\PostgresSchemaQueryGenerator;
@@ -14,9 +15,11 @@ use Modular\Persistence\Test\Unit\Repository\Fixture\Hydrator;
 use Modular\Persistence\Test\Unit\Repository\Fixture\Repository;
 use Modular\Persistence\Test\Unit\Repository\Fixture\Schema;
 use PDO;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 
+#[CoversClass(AbstractGenericRepository::class)]
 class AbstractGenericRepositoryTest extends TestCase
 {
     public function test(): void

@@ -8,15 +8,17 @@ use Modular\Persistence\Database\IPostgresDatabase;
 use Modular\Persistence\Database\NamespaceAwarePostgresDatabase;
 use Modular\Persistence\Repository\Statement\Contract\INamespaceProvider;
 use PDOStatement;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(NamespaceAwarePostgresDatabase::class)]
 class NamespaceAwarePostgresDatabaseTest extends TestCase
 {
     public function testPrepareSetsNamespace(): void
     {
         $inner = $this->createMock(IPostgresDatabase::class);
         $provider = $this->createMock(INamespaceProvider::class);
-        $statement = $this->createMock(PDOStatement::class);
+        $statement = $this->createStub(PDOStatement::class);
 
         $provider->expects(self::once())
             ->method('getNamespace')
@@ -39,7 +41,7 @@ class NamespaceAwarePostgresDatabaseTest extends TestCase
     {
         $inner = $this->createMock(IPostgresDatabase::class);
         $provider = $this->createMock(INamespaceProvider::class);
-        $statement = $this->createMock(PDOStatement::class);
+        $statement = $this->createStub(PDOStatement::class);
 
         $provider->expects(self::once())
             ->method('getNamespace')

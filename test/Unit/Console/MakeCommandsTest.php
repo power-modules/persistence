@@ -9,10 +9,15 @@ use Modular\Persistence\Console\MakeHydratorCommand;
 use Modular\Persistence\Console\MakeRepositoryCommand;
 use Modular\Persistence\Console\MakeSchemaCommand;
 use Modular\Persistence\Test\Unit\Console\Fixtures\TestUserSchema;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\Filesystem\Filesystem;
 
+#[CoversClass(MakeEntityCommand::class)]
+#[CoversClass(MakeHydratorCommand::class)]
+#[CoversClass(MakeRepositoryCommand::class)]
+#[CoversClass(MakeSchemaCommand::class)]
 final class MakeCommandsTest extends TestCase
 {
     private string $tempDir;

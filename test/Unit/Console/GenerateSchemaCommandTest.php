@@ -8,9 +8,11 @@ use Generator;
 use Modular\Persistence\Console\GenerateSchemaCommand;
 use Modular\Persistence\Schema\Contract\ISchemaQueryGenerator;
 use Modular\Persistence\Test\Unit\Repository\Fixture\Schema;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 
+#[CoversClass(GenerateSchemaCommand::class)]
 final class GenerateSchemaCommandTest extends TestCase
 {
     private string $generatedFile;
@@ -82,7 +84,7 @@ final class GenerateSchemaCommandTest extends TestCase
 
     public function testExecuteWithNonExistentClass(): void
     {
-        $queryGenerator = $this->createMock(ISchemaQueryGenerator::class);
+        $queryGenerator = $this->createStub(ISchemaQueryGenerator::class);
         $command = new GenerateSchemaCommand($queryGenerator);
         $tester = new CommandTester($command);
 
@@ -97,7 +99,7 @@ final class GenerateSchemaCommandTest extends TestCase
 
     public function testExecuteWithInvalidClass(): void
     {
-        $queryGenerator = $this->createMock(ISchemaQueryGenerator::class);
+        $queryGenerator = $this->createStub(ISchemaQueryGenerator::class);
         $command = new GenerateSchemaCommand($queryGenerator);
         $tester = new CommandTester($command);
 

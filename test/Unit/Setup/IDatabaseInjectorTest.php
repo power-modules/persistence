@@ -11,16 +11,18 @@ use Modular\Framework\PowerModule\Setup\PowerModuleSetupDto;
 use Modular\Framework\PowerModule\Setup\SetupPhase;
 use Modular\Persistence\Database\IDatabase;
 use Modular\Persistence\Setup\IDatabaseInjector;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(IDatabaseInjector::class)]
 class IDatabaseInjectorTest extends TestCase
 {
     public function testSetupDoesNothingWhenPhaseIsNotPost(): void
     {
         $rootContainer = $this->createMock(ConfigurableContainerInterface::class);
         $moduleContainer = $this->createMock(ConfigurableContainerInterface::class);
-        $powerModule = $this->createMock(PowerModule::class);
-        $config = $this->createMock(Config::class);
+        $powerModule = $this->createStub(PowerModule::class);
+        $config = $this->createStub(Config::class);
 
         $dto = new PowerModuleSetupDto(
             SetupPhase::Pre,
@@ -41,9 +43,9 @@ class IDatabaseInjectorTest extends TestCase
     {
         $rootContainer = $this->createMock(ConfigurableContainerInterface::class);
         $moduleContainer = $this->createMock(ConfigurableContainerInterface::class);
-        $powerModule = $this->createMock(PowerModule::class);
-        $config = $this->createMock(Config::class);
-        $database = $this->createMock(IDatabase::class);
+        $powerModule = $this->createStub(PowerModule::class);
+        $config = $this->createStub(Config::class);
+        $database = $this->createStub(IDatabase::class);
 
         $dto = new PowerModuleSetupDto(
             SetupPhase::Post,

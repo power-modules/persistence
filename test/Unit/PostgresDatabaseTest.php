@@ -7,8 +7,10 @@ namespace Modular\Persistence\Test\Unit;
 use Modular\Persistence\Database\PostgresDatabase;
 use PDO;
 use PDOStatement;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(PostgresDatabase::class)]
 class PostgresDatabaseTest extends TestCase
 {
     public function testGetSearchPath(): void

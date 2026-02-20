@@ -6,8 +6,10 @@ namespace Modular\Persistence\Test\Unit\Schema;
 
 use InvalidArgumentException;
 use Modular\Persistence\Schema\Definition\ForeignKey;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(ForeignKey::class)]
 final class ForeignKeyTest extends TestCase
 {
     public function testItShouldValidateLocalColumnName(): void

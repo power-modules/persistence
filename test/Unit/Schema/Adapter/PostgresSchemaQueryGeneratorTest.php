@@ -9,9 +9,11 @@ use Modular\Persistence\Schema\Contract\ISchema;
 use Modular\Persistence\Test\Unit\Schema\Adapter\Assets\TestSalesReportSchema;
 use Modular\Persistence\Test\Unit\Schema\Adapter\Assets\TestSchemaNoPrimaryKey;
 use Modular\Persistence\Test\Unit\Schema\Adapter\Assets\TestSchemaWithForeignSchema;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
+#[CoversClass(PostgresSchemaQueryGenerator::class)]
 final class PostgresSchemaQueryGeneratorTest extends TestCase
 {
     public function testGenerateShouldProduceCorrectQueries(): void

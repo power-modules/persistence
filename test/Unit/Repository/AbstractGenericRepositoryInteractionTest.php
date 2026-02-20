@@ -9,15 +9,17 @@ use Modular\Persistence\Repository\AbstractGenericRepository;
 use Modular\Persistence\Repository\Statement\Factory\GenericStatementFactory;
 use Modular\Persistence\Schema\Contract\IHydrator;
 use PDOStatement;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(AbstractGenericRepository::class)]
 class AbstractGenericRepositoryInteractionTest extends TestCase
 {
     public function testNullValuesAreBound(): void
     {
         $database = $this->createMock(IDatabase::class);
         $statement = $this->createMock(PDOStatement::class);
-        $hydrator = $this->createMock(IHydrator::class);
+        $hydrator = $this->createStub(IHydrator::class);
         $factory = new GenericStatementFactory();
 
         $repo = new class ($database, $hydrator, $factory) extends AbstractGenericRepository {

@@ -10,8 +10,10 @@ use Modular\Persistence\Repository\Statement\InsertStatement;
 use Modular\Persistence\Repository\Statement\Provider\RuntimeNamespaceProvider;
 use Modular\Persistence\Repository\Statement\SelectStatement;
 use Modular\Persistence\Repository\Statement\UpdateStatement;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(GenericStatementFactory::class)]
 class GenericStatementFactoryTest extends TestCase
 {
     public function testCreateSelectStatement(): void

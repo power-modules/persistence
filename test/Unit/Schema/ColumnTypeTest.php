@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Modular\Persistence\Test\Unit\Schema;
 
 use Modular\Persistence\Schema\Definition\ColumnType;
+use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
+#[CoversClass(ColumnType::class)]
 final class ColumnTypeTest extends TestCase
 {
     public function testGetDbType(): void
