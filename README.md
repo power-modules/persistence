@@ -382,3 +382,14 @@ php bin/console persistence:generate-schema App\\Schema\\UserSchema
 | `persistence:make-hydrator` | Generate a Hydrator from a Schema + Entity |
 | `persistence:make-repository` | Generate a Repository |
 | `persistence:generate-schema` | Generate SQL migration files from Schema Enums |
+
+## 📊 Query Logging
+
+`LoggingQueryExecutor` is an opt-in decorator that wraps `IQueryExecutor` and logs every query via PSR-3 `LoggerInterface`:
+
+```php
+use Modular\Persistence\Database\LoggingQueryExecutor;
+
+$loggingExecutor = new LoggingQueryExecutor($queryExecutor, $logger);
+// Logs: query string, elapsed_ms, affected_rows (for exec)
+```

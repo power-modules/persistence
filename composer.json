@@ -30,6 +30,7 @@
     "require": {
         "php": "^8.4",
         "power-modules/framework": "^2.1",
+        "psr/log": "^3.0",
         "ramsey/uuid": "^4.9",
         "power-modules/console": "^0.2.3"
     },
