@@ -73,6 +73,7 @@ use Modular\Persistence\Schema\Contract\ISchema;
 use Modular\Persistence\Schema\Contract\IHasIndexes;
 use Modular\Persistence\Schema\Definition\ColumnDefinition;
 use Modular\Persistence\Schema\Definition\Index;
+use Modular\Persistence\Schema\Definition\IndexType;
 
 enum UserSchema: string implements ISchema, IHasIndexes
 {
@@ -98,6 +99,7 @@ enum UserSchema: string implements ISchema, IHasIndexes
     {
         return [
             Index::make([self::Email], unique: true),
+            Index::make([self::Data], type: IndexType::Gin),
         ];
     }
 }

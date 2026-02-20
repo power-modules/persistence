@@ -9,6 +9,7 @@ use Modular\Persistence\Schema\Contract\ISchema;
 use Modular\Persistence\Test\Unit\Schema\Adapter\Assets\TestSalesReportSchema;
 use Modular\Persistence\Test\Unit\Schema\Adapter\Assets\TestSchemaNoPrimaryKey;
 use Modular\Persistence\Test\Unit\Schema\Adapter\Assets\TestSchemaWithForeignSchema;
+use Modular\Persistence\Test\Unit\Schema\Adapter\Assets\TestSchemaWithIndexTypes;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -67,6 +68,47 @@ final class PostgresSchemaQueryGeneratorTest extends TestCase
         // Should not contain PRIMARY KEY
         self::assertStringNotContainsString('PRIMARY KEY', $queries[0]);
         self::assertSame('CREATE TABLE "no_pk_table" ("name" VARCHAR(255) NULL DEFAULT NULL, "value" INTEGER NULL DEFAULT NULL);', $queries[0]);
+    }
+
+    public function testGenerateShouldProduceCorrectIndexTypeQueries(): void
+    {
+        $expectedSqlFile = file_get_contents(__DIR__ . '/Assets/TestSchemaWithIndexTypes.sql');
+
+        if ($expectedSqlFile === false) {
+            throw new RuntimeException('Assets/TestSchemaWithIndexTypes.sql is not readable.');
+        }
+
+        $generator = new PostgresSchemaQueryGenerator();
+        $queries = [];
+
+        foreach ($generator->generate(TestSchemaWithIndexTypes::Id) as $query) {
+            $queries[] = $query;
+        }
+
+        self::assertCount(7, $queries);
+        self::assertSame(trim($expectedSqlFile), implode(PHP_EOL, $queries));
+    }
+
+    public function testGenerateShouldContainUsingClauseForNonBtreeIndexes(): void
+    {
+        $generator = new PostgresSchemaQueryGenerator();
+        $queries = [];
+
+        foreach ($generator->generate(TestSchemaWithIndexTypes::Id) as $query) {
+            $queries[] = $query;
+        }
+
+        // GIN index should contain USING GIN
+        self::assertStringContainsString('USING GIN', $queries[2]);
+        // GiST index should contain USING GiST
+        self::assertStringContainsString('USING GiST', $queries[3]);
+        // HASH index should contain USING HASH
+        self::assertStringContainsString('USING HASH', $queries[4]);
+        // BRIN index should contain USING BRIN
+        self::assertStringContainsString('USING BRIN', $queries[5]);
+        // BTREE indexes should NOT contain USING
+        self::assertStringNotContainsString('USING', $queries[1]);
+        self::assertStringNotContainsString('USING', $queries[6]);
     }
 
     private function getSchema(): ISchema

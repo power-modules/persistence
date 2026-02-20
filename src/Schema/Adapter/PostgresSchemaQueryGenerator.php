@@ -11,6 +11,7 @@ use Modular\Persistence\Schema\Contract\ISchema;
 use Modular\Persistence\Schema\Contract\ISchemaQueryGenerator;
 use Modular\Persistence\Schema\Definition\ColumnDefinition;
 use Modular\Persistence\Schema\Definition\ColumnType;
+use Modular\Persistence\Schema\Definition\IndexType;
 
 final readonly class PostgresSchemaQueryGenerator implements ISchemaQueryGenerator
 {
@@ -24,12 +25,14 @@ final readonly class PostgresSchemaQueryGenerator implements ISchemaQueryGenerat
         if ($schema instanceof IHasIndexes) {
             foreach ($schema->getIndexes() as $tableIndex) {
                 $unique = $tableIndex->isUnique ? ' UNIQUE ' : ' ';
+                $using = $this->getUsingClause($tableIndex->type);
 
                 $indexQuery = sprintf(
-                    'CREATE%sINDEX "%s" ON "%s"("%s");',
+                    'CREATE%sINDEX "%s" ON "%s"%s("%s");',
                     $unique,
                     $tableIndex->name ?? $tableIndex->makeName($tableName),
                     $tableName,
+                    $using,
                     implode('", "', $tableIndex->columns),
                 );
 
@@ -165,5 +168,14 @@ final readonly class PostgresSchemaQueryGenerator implements ISchemaQueryGenerat
         }
 
         return $query;
+    }
+
+    private function getUsingClause(IndexType $type): string
+    {
+        if ($type === IndexType::Btree) {
+            return '';
+        }
+
+        return sprintf(' USING %s ', $type->getDbType());
     }
 }

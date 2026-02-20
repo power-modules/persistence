@@ -16,6 +16,7 @@ final readonly class Index
         public array $columns,
         public ?string $name,
         public bool $isUnique,
+        public IndexType $type = IndexType::Btree,
     ) {
         if (count($columns) === 0) {
             throw new InvalidArgumentException('Column list cannot be empty.');
@@ -33,21 +34,28 @@ final readonly class Index
         array $columns,
         bool $unique = false,
         ?string $name = null,
+        IndexType $type = IndexType::Btree,
     ): self {
         $columnNames = array_map(
             static fn (BackedEnum $col): string => (string)$col->value,
             $columns,
         );
 
-        return new self($columnNames, $name, $unique);
+        return new self($columnNames, $name, $unique, $type);
     }
 
     public function makeName(string $tableName): string
     {
-        if ($tableName === '') {
-            return sprintf('idx_%s', crc32(implode('.', $this->columns)));
+        $hashInput = implode('.', $this->columns);
+
+        if ($this->type !== IndexType::Btree) {
+            $hashInput .= '.' . $this->type->name;
         }
 
-        return sprintf('idx_%s_%s', $tableName, crc32(implode('.', $this->columns)));
+        if ($tableName === '') {
+            return sprintf('idx_%s', crc32($hashInput));
+        }
+
+        return sprintf('idx_%s_%s', $tableName, crc32($hashInput));
     }
 }
