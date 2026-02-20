@@ -14,11 +14,14 @@ Type-safe persistence layer for PHP 8.4+ (`Modular\Persistence\` namespace, PSR-
 
 - **Hydrator is identity authority**: `save()` calls `hydrator->getId()` to decide insert vs update. Implement `getId`/`getIdFieldName` correctly or use `TStandardIdentity`.
 - **Enum-as-Schema**: Column references are type-safe enum cases (`UserSchema::Email`), not raw strings. `Condition::equals(UserSchema::Email, $val)`.
+- **Statement factory only**: Never instantiate `SelectStatement`, `InsertStatement`, etc. directly. Use `$this->statementFactory->createSelectStatement(...)`. This ensures multi-tenancy namespace support works.
+- **Upsert support**: `InsertStatement` supports `ignoreDuplicates()` (ON CONFLICT DO NOTHING) and `onConflictUpdate()` (ON CONFLICT ... DO UPDATE).
 - **PHP 8.4 features**: Asymmetric visibility (`public private(set)`), property hooks (auto-converting `BackedEnum` to string in `Condition`, `Join`), `readonly` classes, constructor promotion.
 - **Immutable builders**: `ColumnDefinition::text($col)->nullable()->default('x')` returns new instances.
 - **Multi-tenancy via search_path**: Use `NamespaceAwarePostgresDatabase` decorator + `RuntimeNamespaceProvider`. Statement factories accept `string|INamespaceProvider` for namespace-qualified table names.
 - **Composition over traits**: `WhereClause` is composed into statements rather than mixed in via traits.
 - **Generic templates**: Repositories and hydrators use `@template TModel of object` with `@extends` for PHPStan level 8 type safety.
+- **Foreign keys**: Schema enums implement `IHasForeignKeys` for FK constraints, including cross-schema FKs via `foreignSchemaName`.
 
 ## Developer Workflow
 

@@ -85,7 +85,6 @@ enum UserSchema: string implements ISchema, IHasIndexes
     {
         return [
             Index::make([self::Email], unique: true),
-            Index::make([self::Data], type: IndexType::Gin),
         ];
     }
 }
@@ -142,6 +141,136 @@ $user = new User(Uuid::uuid7()->toString(), 'test@example.com', 'Test User');
 $repo->save($user);
 ```
 
+## 📦 Repository API
+
+`AbstractGenericRepository` provides a complete CRUD interface out of the box:
+
+```php
+// Create
+$repo->insert($user);                      // Insert a single entity
+$repo->insertAll([$user1, $user2, ...]);    // Bulk insert (auto-chunked, auto-transaction)
+$repo->save($user);                        // Upsert: inserts if new, updates if exists
+
+// Read
+$repo->find($id);                          // Find by primary key
+$repo->findBy([                            // Find all matching conditions
+    Condition::equals(UserSchema::Email, 'test@example.com'),
+]);
+$repo->findOneBy([                         // Find first match or null
+    Condition::equals(UserSchema::Name, 'John'),
+]);
+$repo->count();                            // Count all rows
+$repo->exists([...]);                      // Check existence (bool)
+
+// Update
+$repo->update($user);                      // Update entity by ID
+$repo->updateBy(                           // Update arbitrary columns by conditions
+    ['name' => 'New Name'],
+    [Condition::equals(UserSchema::Email, 'old@example.com')],
+);
+
+// Delete
+$repo->delete($id);                        // Delete by primary key
+$repo->deleteBy([...]);                    // Delete by conditions
+```
+
+## 🔍 Conditions
+
+Type-safe query conditions using schema enum cases:
+
+```php
+use Modular\Persistence\Repository\Condition;
+use Modular\Persistence\Repository\ConditionXor;
+
+// Comparison
+Condition::equals(UserSchema::Email, 'test@example.com');
+Condition::notEquals(UserSchema::Status, 'inactive');
+Condition::greater(UserSchema::Age, 18);
+Condition::greaterEquals(UserSchema::Age, 18);
+Condition::less(UserSchema::Age, 65);
+Condition::lessEquals(UserSchema::Age, 65);
+
+// Sets
+Condition::in(UserSchema::Role, ['admin', 'editor']);
+Condition::notIn(UserSchema::Status, ['banned', 'suspended']);
+
+// Nullability
+Condition::isNull(UserSchema::DeletedAt);
+Condition::notNull(UserSchema::Email);
+
+// Pattern matching
+Condition::like(UserSchema::Name, 'John');       // LIKE '%John%'
+Condition::ilike(UserSchema::Name, 'john');      // ILIKE '%john%' (Postgres, case-insensitive)
+
+// Subqueries
+Condition::exists('SELECT 1 FROM orders WHERE orders.user_id = users.id');
+
+// OR conditions
+new Condition(UserSchema::Role, Operator::Equals, 'admin', ConditionXor::Or);
+```
+
+## 🔗 Joins
+
+```php
+use Modular\Persistence\Repository\Join;
+use Modular\Persistence\Repository\JoinType;
+
+$select = $this->statementFactory->createSelectStatement($this->getTableName());
+$select->addJoin(
+    new Join(
+        JoinType::Left,
+        'orders',
+        UserSchema::Id,          // Local key (accepts BackedEnum)
+        OrderSchema::UserId,     // Foreign key (accepts BackedEnum)
+    ),
+);
+$select->addCondition(Condition::notNull(OrderSchema::Id));
+$select->addOrder('created_at', 'DESC');
+$select->setLimit(10);
+$select->setStart(0);
+```
+
+Supported join types: `Inner`, `Left`, `Outer`.
+
+## 🔄 Transactions
+
+The `IDatabase` interface provides full transaction control:
+
+```php
+$db->beginTransaction();
+
+try {
+    $userRepo->insert($user);
+    $orderRepo->insert($order);
+    $db->commit();
+} catch (\Throwable $e) {
+    $db->rollBack();
+    throw $e;
+}
+```
+
+> **Note:** `insertAll()` automatically wraps in a transaction if one isn't already active.
+
+## ⚡ Upsert & Conflict Handling
+
+For advanced insert behavior, use the statement factory directly:
+
+```php
+// Ignore duplicates (ON CONFLICT DO NOTHING)
+$insert = $this->statementFactory->createInsertStatement('users', ['id', 'email']);
+$insert->prepareBinds(['id' => $id, 'email' => $email]);
+$insert->ignoreDuplicates();
+
+// Upsert (ON CONFLICT ... DO UPDATE)
+$insert = $this->statementFactory->createInsertStatement('users', ['id', 'email', 'name']);
+$insert->prepareBinds(['id' => $id, 'email' => $email, 'name' => $name]);
+$insert->onConflictUpdate(
+    conflictColumns: ['email'],
+    updateColumns: ['name'],
+);
+// Generates: INSERT INTO "users" ... ON CONFLICT ("email") DO UPDATE SET "name" = EXCLUDED."name"
+```
+
 ## 🏢 Multi-Tenancy
 
 Modular Persistence supports multi-tenancy via Postgres schemas (namespaces) using a **Decorator Pattern** on the database connection. This ensures `search_path` is correctly set for every query, allowing for clean SQL generation and correct Foreign Key resolution.
@@ -168,10 +297,75 @@ $repo->findBy();
 // SELECT * FROM "users";
 ```
 
+## 🗂️ Schema Features
+
+### Column Types
+
+`ColumnDefinition` provides static factories for all supported types:
+
+```php
+ColumnDefinition::uuid($col)->primaryKey();        // UUID primary key
+ColumnDefinition::autoincrement($col)->primaryKey(); // BIGINT auto-increment
+ColumnDefinition::text($col);                       // TEXT
+ColumnDefinition::varchar($col, 255);                // VARCHAR(255)
+ColumnDefinition::int($col);                         // INTEGER
+ColumnDefinition::bigint($col);                      // BIGINT
+ColumnDefinition::smallint($col);                    // SMALLINT
+ColumnDefinition::tinyint($col);                     // TINYINT
+ColumnDefinition::decimal($col, 10, 2);              // DECIMAL(10,2)
+ColumnDefinition::date($col);                        // DATE
+ColumnDefinition::timestamp($col);                   // TIMESTAMP
+ColumnDefinition::timestamptz($col);                 // TIMESTAMPTZ
+ColumnDefinition::jsonb($col);                       // JSONB
+ColumnDefinition::mediumblob($col);                  // MEDIUMBLOB
+
+// Modifiers (returns new immutable instance)
+ColumnDefinition::text($col)->nullable()->default('N/A');
+```
+
+### Foreign Keys
+
+Schema enums can declare foreign key constraints by implementing `IHasForeignKeys`:
+
+```php
+use Modular\Persistence\Schema\Contract\IHasForeignKeys;
+use Modular\Persistence\Schema\Definition\ForeignKey;
+
+enum OrderSchema: string implements ISchema, IHasForeignKeys
+{
+    case Id = 'id';
+    case UserId = 'user_id';
+
+    // ...
+
+    public static function getForeignKeys(): array
+    {
+        return [
+            ForeignKey::make(
+                localColumnName: self::UserId,
+                foreignTableName: 'users',
+                foreignColumnName: UserSchema::Id,
+                foreignSchemaName: 'public', // Optional: cross-schema FK
+            ),
+        ];
+    }
+}
+```
+
+### SQL Generation
+
+The `PostgresSchemaQueryGenerator` generates DDL from schema enums, including `CREATE TABLE`, `ALTER TABLE ADD COLUMN`, `ALTER TABLE RENAME COLUMN`, and index creation. Use the CLI command or the generator directly:
+
+```bash
+php bin/console persistence:generate-schema App\\Schema\\UserSchema
+```
+
 ## 🛠️ Console Commands
 
-- `persistence:make-schema` - Generate a Schema Enum
-- `persistence:make-entity` - Generate an Entity class
-- `persistence:make-hydrator` - Generate a Hydrator
-- `persistence:make-repository` - Generate a Repository
-- `persistence:generate-schema` - Generate SQL migration from Schema Enums
+| Command | Description |
+|---|---|
+| `persistence:make-schema` | Generate a Schema Enum |
+| `persistence:make-entity` | Generate an Entity class from a Schema |
+| `persistence:make-hydrator` | Generate a Hydrator from a Schema + Entity |
+| `persistence:make-repository` | Generate a Repository |
+| `persistence:generate-schema` | Generate SQL migration files from Schema Enums |
