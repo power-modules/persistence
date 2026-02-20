@@ -1,102 +1,61 @@
-# Modular Persistence AI Instructions
+# Modular Persistence — AI Coding Instructions
 
-## Architecture Overview
-- **Core**: Type-safe persistence layer for PHP 8.4+ built on `power-modules/framework`.
-- **Database**: `IDatabase` acts as a facade composed of `IQueryExecutor` and `ITransactionManager`.
-- **Repository Pattern**: `AbstractGenericRepository` provides generic CRUD, decoupled from SQL generation via `IStatementFactory`.
-- **Multi-Tenancy**: Native support for dynamic Postgres schemas (namespaces) via `NamespaceAwarePostgresDatabase` decorator.
-- **Schema**: Defined via Enums implementing `ISchema`.
+## Architecture
 
-## Key Components
-### Database Layer (`src/Database`)
-- **IDatabase**: The primary dependency for repositories. Combines execution and transaction capabilities.
-- **IQueryExecutor**: Handles `query`, `execute`, `prepare`.
-- **ITransactionManager**: Handles `beginTransaction`, `commit`, `rollback`.
-- **PostgresDatabase**: Concrete implementation handling driver-specifics.
-- **NamespaceAwarePostgresDatabase**: Decorator that automatically sets the PostgreSQL `search_path` based on `INamespaceProvider`.
+Type-safe persistence layer for PHP 8.4+ (`Modular\Persistence\` namespace, PSR-4 → `src/`). Built on `power-modules/framework`.
 
-### Repository Layer (`src/Repository`)
-- **AbstractGenericRepository**: Base class. Implements `save` (upsert), `deleteBy`, `findBy`, etc.
-- **IStatementFactory** (`src/Repository/Statement/Contract`): Interface for creating SQL statements.
-- **GenericStatementFactory** (`src/Repository/Statement/Factory`): Standard factory.
-- **RuntimeNamespaceProvider** (`src/Repository/Statement/Provider`): Allows runtime switching of database schemas (e.g., for multi-tenant apps).
-- **WhereClause** (`src/Repository/Statement`): Encapsulates condition handling and SQL generation for WHERE clauses.
+**Database layer** (`src/Database/`): `IDatabase` extends `IQueryExecutor` + `ITransactionManager` (ISP). `Database` delegates to composed `QueryExecutor` and `TransactionManager` — never inherits from PDO. `PostgresDatabase` adds search_path management with namespace caching. `NamespaceAwarePostgresDatabase` is a **decorator** that auto-sets search_path before every query via `INamespaceProvider`.
 
-### Schema & Hydration (`src/Schema`)
-- **ISchema** (`src/Schema/Contract`): Interface for Schema Enums.
-- **Definitions** (`src/Schema/Definition`): Contains `ColumnDefinition`, `ColumnType`, `ForeignKey`, `Index`.
-- **IHydrator** (`src/Schema/Contract`): **Crucial Component**.
-  - Maps rows to objects (`hydrate`).
-  - Extracts data for persistence (`dehydrate`).
-  - **Source of Truth for Identity**: Must implement `getId(object $entity)` and `getIdFieldName()`.
-  - **TStandardIdentity**: Trait providing default `getId` and `getIdFieldName` implementation.
+**Repository layer** (`src/Repository/`): `AbstractGenericRepository<TModel>` provides generic CRUD (`save`, `find`, `findBy`, `insert`, `insertAll`, `delete`, `deleteBy`, `count`, `exists`). Concrete repos only implement `getTableName(): string`. All SQL is built through `IStatementFactory` — never instantiate statements directly.
 
-## Design Decisions & Pitfalls
-1.  **Hydrator Responsibility**: The Hydrator is the sole authority on Entity Identity. The Repository does not use reflection to find IDs; it asks the Hydrator.
-    - *Pitfall*: Forgetting to implement `getId` or `getIdFieldName` correctly will break `save()` and `updateBy()`. Use `TStandardIdentity` for standard cases.
-2.  **Repository `save()` Logic**: The `save` method is an "upsert". It checks if the entity has an ID (via Hydrator). If yes -> `update`, if no -> `insert`.
-3.  **Statement Factories**: Never instantiate `SelectStatement` or `UpdateStatement` directly in Repositories. Always use `$this->statementFactory`. This ensures multi-tenancy support works.
-4.  **Database Composition**: We moved away from a monolithic `Database` class. It now delegates to `QueryExecutor` and `TransactionManager`. This improves testability and adheres to ISP.
-5.  **Multi-Tenancy**: We use Postgres Schemas (Namespaces). This is handled by decorating the `IPostgresDatabase` with `NamespaceAwarePostgresDatabase`.
-    - *Decision*: We moved away from injecting the namespace into the `GenericStatementFactory`. Instead, we use the database driver's `search_path` capability. This ensures Foreign Keys work correctly and SQL remains clean (unqualified table names).
-6.  **Composition over Traits**: We prefer composition (e.g., `WhereClause`) over traits (`TStatementHasParams`) for shared logic in Statements to avoid tight coupling and hidden dependencies.
+**Schema** (`src/Schema/`): Database schemas are **backed string enums** implementing `ISchema`. Each case is a column name, `getColumnDefinition()` returns immutable `ColumnDefinition` builders. Hydrators (`IHydrator<TModel>`) own entity↔row mapping AND entity identity (`getId`, `getIdFieldName`). Use `TStandardIdentity` trait for the common `id` field case.
 
-## Developer Workflows
-- **Testing**: Run `make test` (PHPUnit).
-- **Static Analysis**: Run `make phpstan` (PHPStan).
-- **Code Style**: Run `make codestyle` (PHP-CS-Fixer).
-- **Mandatory Workflow**: Before finishing your work, you MUST run/fix/repeat `make phpstan && make test` until errors are gone.
+## Critical Patterns
 
-## Examples
+- **Hydrator is identity authority**: `save()` calls `hydrator->getId()` to decide insert vs update. Implement `getId`/`getIdFieldName` correctly or use `TStandardIdentity`.
+- **Enum-as-Schema**: Column references are type-safe enum cases (`UserSchema::Email`), not raw strings. `Condition::equals(UserSchema::Email, $val)`.
+- **PHP 8.4 features**: Asymmetric visibility (`public private(set)`), property hooks (auto-converting `BackedEnum` to string in `Condition`, `Join`), `readonly` classes, constructor promotion.
+- **Immutable builders**: `ColumnDefinition::text($col)->nullable()->default('x')` returns new instances.
+- **Multi-tenancy via search_path**: Use `NamespaceAwarePostgresDatabase` decorator + `RuntimeNamespaceProvider`. Statement factories accept `string|INamespaceProvider` for namespace-qualified table names.
+- **Composition over traits**: `WhereClause` is composed into statements rather than mixed in via traits.
+- **Generic templates**: Repositories and hydrators use `@template TModel of object` with `@extends` for PHPStan level 8 type safety.
 
-### Multi-Tenant Setup
-```php
-// 1. Setup Database Decorator
-$nsProvider = new RuntimeNamespaceProvider();
-$db = new NamespaceAwarePostgresDatabase(new PostgresDatabase($pdo), $nsProvider);
+## Developer Workflow
 
-// 2. Setup Factory (Empty constructor for dynamic tenancy)
-$factory = new GenericStatementFactory();
-
-// 3. Inject into Repository
-$repo = new UserRepository($db, $hydrator, $factory);
-
-// 4. Runtime Context Switch
-$nsProvider->setNamespace('tenant_123');
-$repo->findBy(); 
-// Executes: SET search_path TO "tenant_123"; SELECT * FROM "users"
+```bash
+make test        # PHPUnit (test/)
+make codestyle   # PHP-CS-Fixer check (PSR-12 base, trailing commas, ordered imports, strict_types)
+make phpstan     # PHPStan level 8 on src/ + test/
 ```
 
-### Hydrator Implementation
-```php
-class UserHydrator implements IHydrator {
-    use TStandardIdentity; // Handles getId() and getIdFieldName()
+**Before finishing any task**: Run `make phpstan && make test` and fix all errors. Repeat until clean.
 
-    public function hydrate(array $row): User {
-        return new User((int)$row['id'], $row['email']);
-    }
-    
-    public function dehydrate(mixed $entity): array {
-        return ['email' => $entity->email];
-    }
-}
+## Testing Conventions
+
+- PHPUnit 12.5, attributes-based (`#[CoversClass(...)]`), `self::assert*` static style.
+- `test/Unit/` mirrors `src/` structure; `test/Integration/` for DB connection tests.
+- Fixtures in `test/Unit/Repository/Fixture/` — reference `EmployeeSchema`, `Employee`, `EmployeeHydrator`, `EmployeeRepository` for pattern examples.
+- Integration-style unit tests use **SQLite in-memory** (`new PDO('sqlite::memory:')`) — create tables, exercise full CRUD.
+- Mock `IDatabase`/`IQueryExecutor` with `createMock()`/`createStub()` for isolated statement/bind verification.
+
+## Code Style
+
+PSR-12 base with: trailing commas in multiline constructs, ordered imports (alpha), `declare(strict_types=1)` everywhere, no unused imports, no empty phpdoc. See [.php-cs-fixer.php](.php-cs-fixer.php).
+
+## Scaffolding Commands
+
+```bash
+php bin/console persistence:make-schema Name --table=table_name --folder=src/Schema
+php bin/console persistence:make-entity SchemaClass --folder=src/Entity
+php bin/console persistence:make-hydrator SchemaClass EntityClass --folder=src/Hydrator
+php bin/console persistence:make-repository Name --folder=src/Repository
+php bin/console persistence:generate-schema SchemaClass  # Outputs .sql alongside enum
 ```
 
-### Repository Usage
-```php
-class UserRepository extends AbstractGenericRepository {
-    // Custom methods use the factory
-    public function findActive(): array {
-        $stmt = $this->statementFactory->createSelectStatement($this->tableName);
-        $stmt->addCondition(Condition::equals(UserSchema::Status, 'active'));
-        // ...
-    }
-}
+## Key Reference Files
 
-// Usage
-$user = new User(null, 'test@example.com');
-$repo->save($user); // Inserts because getId() returns null
-
-$user->email = 'changed@example.com';
-$repo->save($user); // Updates because getId() returns ID
-```
+- Repository base: [src/Repository/AbstractGenericRepository.php](src/Repository/AbstractGenericRepository.php)
+- Query conditions: [src/Repository/Condition.php](src/Repository/Condition.php) (14 static factories: `equals`, `in`, `isNull`, `like`, `ilike`, `exists`, etc.)
+- Statement factory: [src/Repository/Statement/Factory/GenericStatementFactory.php](src/Repository/Statement/Factory/GenericStatementFactory.php)
+- Column definitions: [src/Schema/Definition/ColumnDefinition.php](src/Schema/Definition/ColumnDefinition.php)
+- Test fixture (full pattern): [test/Unit/Repository/Fixture/](test/Unit/Repository/Fixture/)

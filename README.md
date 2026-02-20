@@ -53,20 +53,6 @@ return Config::create()
 
 ## 🏗️ Quick Start
 
-The fastest way to get started is using the scaffolding command:
-
-```bash
-php bin/console persistence:scaffold User --table=users
-```
-
-This will generate:
-- `UserSchema` (Enum)
-- `User` (Entity)
-- `UserHydrator` (Mapper)
-- `UserRepository` (Repository)
-
-### Manual Setup
-
 #### 1. Define Schema
 ```php
 use Modular\Persistence\Schema\Contract\ISchema;
@@ -184,7 +170,6 @@ $repo->findBy();
 
 ## 🛠️ Console Commands
 
-- `persistence:scaffold` - Generate all files for a domain entity
 - `persistence:make-schema` - Generate a Schema Enum
 - `persistence:make-entity` - Generate an Entity class
 - `persistence:make-hydrator` - Generate a Hydrator
