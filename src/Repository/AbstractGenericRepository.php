@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modular\Persistence\Repository;
 
 use Modular\Persistence\Database\IDatabase;
+use Modular\Persistence\Repository\Contract\IRepository;
 use Modular\Persistence\Repository\Exception\EntityNotFoundException;
 use Modular\Persistence\Repository\Exception\PreparedStatementException;
 use Modular\Persistence\Repository\Exception\StatementExecutionException;
@@ -21,8 +22,9 @@ use PDOStatement;
 
 /**
  * @template TModel of object
+ * @implements IRepository<TModel>
  */
-abstract class AbstractGenericRepository
+abstract class AbstractGenericRepository implements IRepository
 {
     /**
      * @param IHydrator<TModel> $hydrator
@@ -309,8 +311,11 @@ abstract class AbstractGenericRepository
 
     /**
      * @param TModel $entity
+     *
+     * @deprecated Use upsert() instead — it performs the same insert-or-update in a single query.
      */
-    public function save($entity): int
+    #[\Deprecated(message: 'Use upsert() instead', since: '2.0')]
+    public function save(object $entity): int
     {
         $id = $this->hydrator->getId($entity);
         $idFieldName = $this->hydrator->getIdFieldName();

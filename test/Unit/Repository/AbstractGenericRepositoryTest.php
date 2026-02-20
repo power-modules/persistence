@@ -17,6 +17,7 @@ use Modular\Persistence\Test\Unit\Repository\Fixture\Repository;
 use Modular\Persistence\Test\Unit\Repository\Fixture\Schema;
 use PDO;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 
@@ -115,6 +116,7 @@ class AbstractGenericRepositoryTest extends TestCase
         self::assertCount(1, $repository->findBy([Condition::notIn(Schema::Name, ['John Zoe'])]));
     }
 
+    #[IgnoreDeprecations]
     public function testSave(): void
     {
         $repository = $this->getRepository();
@@ -145,6 +147,7 @@ class AbstractGenericRepositoryTest extends TestCase
         self::assertSame(0, $repository->update($employee));
     }
 
+    #[IgnoreDeprecations]
     public function testSaveIdempotency(): void
     {
         $repository = $this->getRepository();

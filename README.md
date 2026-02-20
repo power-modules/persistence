@@ -138,19 +138,33 @@ class UserRepository extends AbstractGenericRepository
 // Usage
 $repo = $app->get(UserRepository::class);
 $user = new User(Uuid::uuid7()->toString(), 'test@example.com', 'Test User');
-$repo->save($user);
+$repo->upsert($user);
 ```
 
 ## 📦 Repository API
 
-`AbstractGenericRepository` provides a complete CRUD interface out of the box:
+`AbstractGenericRepository` implements the `IRepository<TModel>` interface, providing a complete CRUD contract out of the box. **Type-hint `IRepository<TModel>` in consumers** (services, controllers) — not `AbstractGenericRepository` — to enable decorator patterns (e.g., caching repos) and testability:
+
+```php
+use Modular\Persistence\Repository\Contract\IRepository;
+
+class UserService
+{
+    /** @param IRepository<User> $users */
+    public function __construct(
+        private readonly IRepository $users,
+    ) {}
+}
+```
+
+All repository methods:
 
 ```php
 // Create
 $repo->insert($user);                      // Insert a single entity
 $repo->insertAll([$user1, $user2, ...]);    // Bulk insert (auto-chunked, auto-transaction)
 $repo->insertAll($entities, chunkSize: 50); // Custom chunk size (default: 100)
-$repo->save($user);                        // Insert if new, update if exists (2 queries)
+$repo->save($user);                        // @deprecated — use upsert() instead (2 queries)
 $repo->upsert($user);                      // Insert or update in a single query (ON CONFLICT)
 
 // Read

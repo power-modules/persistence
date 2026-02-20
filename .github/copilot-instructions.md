@@ -6,21 +6,22 @@ Type-safe persistence layer for PHP 8.4+ (`Modular\Persistence\` namespace, PSR-
 
 **Database layer** (`src/Database/`): `IDatabase` extends `IQueryExecutor` + `ITransactionManager` (ISP). `Database` delegates to composed `QueryExecutor` and `TransactionManager` — never inherits from PDO. `PostgresDatabase` adds search_path management with namespace caching. `NamespaceAwarePostgresDatabase` is a **decorator** that auto-sets search_path before every query via `INamespaceProvider`.
 
-**Repository layer** (`src/Repository/`): `AbstractGenericRepository<TModel>` provides generic CRUD (`save`, `upsert`, `find`, `findOrFail`, `findBy`, `findOneBy`, `findOneByOrFail`, `insert`, `insertAll`, `delete`, `deleteBy`, `count`, `exists`). Concrete repos only implement `getTableName(): string`. All SQL is built through `IStatementFactory` — never instantiate statements directly.
+**Repository layer** (`src/Repository/`): `IRepository<TModel>` defines the full repository contract. `AbstractGenericRepository<TModel>` implements it with generic CRUD (`upsert`, `find`, `findOrFail`, `findBy`, `findOneBy`, `findOneByOrFail`, `insert`, `insertAll`, `delete`, `deleteBy`, `count`, `exists`). `save()` is deprecated in favour of `upsert()`. Concrete repos only implement `getTableName(): string`. All SQL is built through `IStatementFactory` — never instantiate statements directly.
 
 **Schema** (`src/Schema/`): Database schemas are **backed string enums** implementing `ISchema`. Each case is a column name, `getColumnDefinition()` returns immutable `ColumnDefinition` builders. Hydrators (`IHydrator<TModel>`) own entity↔row mapping AND entity identity (`getId`, `getIdFieldName`). Use `TStandardIdentity` trait for the common `id` field case.
 
 ## Critical Patterns
 
-- **Hydrator is identity authority**: `save()` calls `hydrator->getId()` to decide insert vs update. Implement `getId`/`getIdFieldName` correctly or use `TStandardIdentity`.
+- **Hydrator is identity authority**: `upsert()` uses `hydrator->getId()` / `getIdFieldName()` for the conflict column. Implement `getId`/`getIdFieldName` correctly or use `TStandardIdentity`.
 - **Enum-as-Schema**: Column references are type-safe enum cases (`UserSchema::Email`), not raw strings. `Condition::equals(UserSchema::Email, $val)`.
 - **Statement factory only**: Never instantiate `SelectStatement`, `InsertStatement`, etc. directly. Use `$this->statementFactory->createSelectStatement(...)`. This ensures multi-tenancy namespace support works.
-- **Upsert support**: `upsert()` on repository does single-query `ON CONFLICT ... DO UPDATE`. `InsertStatement` also supports `ignoreDuplicates()` (ON CONFLICT DO NOTHING) and `onConflictUpdate()` directly.
+- **Upsert support**: `upsert()` on repository does single-query `ON CONFLICT ... DO UPDATE`. `InsertStatement` also supports `ignoreDuplicates()` (ON CONFLICT DO NOTHING) and `onConflictUpdate()` directly. `save()` is deprecated — prefer `upsert()`.
 - **findOrFail / findOneByOrFail**: Throw `EntityNotFoundException` (extends `PersistenceException`) when entity not found instead of returning null.
 - **PHP 8.4 features**: Asymmetric visibility (`public private(set)`), property hooks (auto-converting `BackedEnum` to string in `Condition`, `Join`), `readonly` classes, constructor promotion.
 - **Immutable builders**: `ColumnDefinition::text($col)->nullable()->default('x')` returns new instances.
 - **Multi-tenancy via search_path**: Use `NamespaceAwarePostgresDatabase` decorator + `RuntimeNamespaceProvider`. Statement factories accept `string|INamespaceProvider` for namespace-qualified table names.
 - **Composition over traits**: `WhereClause` is composed into statements rather than mixed in via traits.
+- **Type-hint `IRepository`**: Consumers (services, controllers) should depend on `IRepository<TModel>`, not `AbstractGenericRepository`. This enables decorator patterns (e.g., caching repos) and testability.
 - **Generic templates**: Repositories and hydrators use `@template TModel of object` with `@extends` for PHPStan level 8 type safety.
 - **Foreign keys**: Schema enums implement `IHasForeignKeys` for FK constraints, including cross-schema FKs via `foreignSchemaName`.
 
@@ -33,6 +34,8 @@ make phpstan     # PHPStan level 8 on src/ + test/
 ```
 
 **Before finishing any task**: Run `make phpstan && make test` and fix all errors. Repeat until clean.
+
+After any codebase changes, review and update `README.md` and `.github/copilot-instructions.md` to keep documentation in sync with the code.
 
 When running PHPUnit manually, always use `--display-all-issues` flag.
 
@@ -60,6 +63,7 @@ php bin/console persistence:generate-schema SchemaClass  # Outputs .sql alongsid
 
 ## Key Reference Files
 
+- Repository interface: [src/Repository/Contract/IRepository.php](src/Repository/Contract/IRepository.php)
 - Repository base: [src/Repository/AbstractGenericRepository.php](src/Repository/AbstractGenericRepository.php)
 - Query conditions: [src/Repository/Condition.php](src/Repository/Condition.php) (14 static factories: `equals`, `in`, `isNull`, `like`, `ilike`, `exists`, etc.)
 - Statement factory: [src/Repository/Statement/Factory/GenericStatementFactory.php](src/Repository/Statement/Factory/GenericStatementFactory.php)

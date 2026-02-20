@@ -48,7 +48,7 @@ class LoggingQueryExecutorTest extends TestCase
     {
         $inner = $this->createMock(IQueryExecutor::class);
         $logger = $this->createMock(LoggerInterface::class);
-        $pdoStatement = $this->createMock(PDOStatement::class);
+        $pdoStatement = $this->createStub(PDOStatement::class);
 
         $inner->expects(self::once())
             ->method('prepare')
@@ -77,7 +77,7 @@ class LoggingQueryExecutorTest extends TestCase
     {
         $inner = $this->createMock(IQueryExecutor::class);
         $logger = $this->createMock(LoggerInterface::class);
-        $pdoStatement = $this->createMock(PDOStatement::class);
+        $pdoStatement = $this->createStub(PDOStatement::class);
 
         $inner->expects(self::once())
             ->method('query')
