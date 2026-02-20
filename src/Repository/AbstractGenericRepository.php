@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modular\Persistence\Repository;
 
 use Modular\Persistence\Database\IDatabase;
+use Modular\Persistence\Repository\Exception\EntityNotFoundException;
 use Modular\Persistence\Repository\Exception\PreparedStatementException;
 use Modular\Persistence\Repository\Exception\StatementExecutionException;
 use Modular\Persistence\Repository\Statement\Contract\Bind;
@@ -69,11 +70,11 @@ abstract class AbstractGenericRepository
      * @throws PDOException
      * @throws PreparedStatementException
      */
-    public function findBy(array $conditions = [], ?ISelectStatement $selectStatement = null): array
+    public function findBy(array $conditions = [], ?ISelectStatement $selectStatement = null, ?int $limit = null, int $offset = 0): array
     {
         $selectStatement = $selectStatement ? clone $selectStatement : $this->getSelectStatement();
         $selectStatement->addCondition(...$conditions);
-        $selectStatement->all();
+        $selectStatement->all($offset > 0 ? $offset : null, $limit);
 
         $rows = $this->select($selectStatement);
 
@@ -110,6 +111,25 @@ abstract class AbstractGenericRepository
         return $this->findBy(
             [new Condition($this->hydrator->getIdFieldName(), Operator::Equals, $id)],
         )[0] ?? null;
+    }
+
+    /**
+     * @return TModel
+     * @throws EntityNotFoundException
+     */
+    public function findOrFail(int|string $id): mixed
+    {
+        return $this->find($id) ?? throw new EntityNotFoundException($this->getTableName(), $id);
+    }
+
+    /**
+     * @param array<Condition> $conditions
+     * @return TModel
+     * @throws EntityNotFoundException
+     */
+    public function findOneByOrFail(array $conditions = [], ?ISelectStatement $selectStatement = null): mixed
+    {
+        return $this->findOneBy($conditions, $selectStatement) ?? throw new EntityNotFoundException($this->getTableName());
     }
 
     /**
@@ -158,15 +178,16 @@ abstract class AbstractGenericRepository
 
     /**
      * @param array<TModel> $entities
+     * @param int<1, max> $chunkSize
      */
-    public function insertAll(array $entities): int
+    public function insertAll(array $entities, int $chunkSize = 100): int
     {
         $insertInTransaction = $this->database->inTransaction() === false;
 
         /**
          * @var array<array<TModel>>
          */
-        $chunks = array_chunk($entities, 100);
+        $chunks = array_chunk($entities, $chunkSize);
 
         if ($insertInTransaction === true) {
             $this->database->beginTransaction();
@@ -299,6 +320,36 @@ abstract class AbstractGenericRepository
         }
 
         return $this->insert($entity);
+    }
+
+    /**
+     * Upsert: insert or update in a single query using ON CONFLICT ... DO UPDATE.
+     *
+     * @param TModel $entity
+     */
+    public function upsert(object $entity): int
+    {
+        $data = $this->hydrator->dehydrate($entity);
+        $idFieldName = $this->hydrator->getIdFieldName();
+        $columns = array_keys($data);
+        $updateColumns = array_filter($columns, static fn (string $col): bool => $col !== $idFieldName);
+
+        $insertStatement = $this->getInsertStatement($columns);
+        $insertStatement->prepareBinds($data);
+        $insertStatement->onConflictUpdate([$idFieldName], array_values($updateColumns));
+
+        $statement = $this->database->prepare($insertStatement->getQuery());
+        $this->bindValues($statement, $insertStatement->getInsertBinds());
+
+        try {
+            if ($statement->execute() === false) {
+                throw new PreparedStatementException();
+            }
+        } catch (PDOException $e) {
+            throw new StatementExecutionException($e->getMessage(), (int) $e->getCode(), $e);
+        }
+
+        return $statement->rowCount();
     }
 
     /**

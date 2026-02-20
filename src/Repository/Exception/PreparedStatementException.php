@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Modular\Persistence\Repository\Exception;
 
-use Exception;
+use Modular\Persistence\Exception\PersistenceException;
 
-class PreparedStatementException extends Exception
+class PreparedStatementException extends PersistenceException
 {
 }

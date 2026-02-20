@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Modular\Persistence\Database\Database;
 use Modular\Persistence\Repository\AbstractGenericRepository;
 use Modular\Persistence\Repository\Condition;
+use Modular\Persistence\Repository\Exception\EntityNotFoundException;
 use Modular\Persistence\Repository\Statement\SelectStatement;
 use Modular\Persistence\Schema\Adapter\PostgresSchemaQueryGenerator;
 use Modular\Persistence\Test\Unit\Repository\Fixture\Employee;
@@ -164,6 +165,109 @@ class AbstractGenericRepositoryTest extends TestCase
         $repository->insertAll($employees);
 
         self::assertCount(550, $repository->findBy());
+    }
+
+    public function testUpsert(): void
+    {
+        $repository = $this->getRepository();
+
+        // Upsert as insert
+        $employee = new Employee(Uuid::uuid7()->toString(), 'Upsert Insert', new DateTimeImmutable(), null);
+        self::assertSame(1, $repository->upsert($employee));
+
+        $found = $repository->find($employee->id);
+        self::assertNotNull($found);
+        self::assertSame('Upsert Insert', $found->name);
+
+        // Upsert as update
+        $updated = new Employee($employee->id, 'Upsert Update', $employee->createdAt, $employee->deletedAt);
+        self::assertSame(1, $repository->upsert($updated));
+
+        $found = $repository->find($employee->id);
+        self::assertNotNull($found);
+        self::assertSame('Upsert Update', $found->name);
+        self::assertSame(1, $repository->count());
+    }
+
+    public function testUpsertIdempotency(): void
+    {
+        $repository = $this->getRepository();
+        $employee = new Employee(Uuid::uuid7()->toString(), 'Idempotent Upsert', new DateTimeImmutable(), null);
+
+        self::assertSame(1, $repository->upsert($employee));
+        self::assertSame(1, $repository->upsert($employee));
+        self::assertSame(1, $repository->count());
+    }
+
+    public function testFindOrFail(): void
+    {
+        $repository = $this->getRepository();
+        $employee = new Employee(Uuid::uuid7()->toString(), 'Findable', new DateTimeImmutable(), null);
+        $repository->insert($employee);
+
+        $found = $repository->findOrFail($employee->id);
+        self::assertSame('Findable', $found->name);
+    }
+
+    public function testFindOrFailThrowsOnMissing(): void
+    {
+        $repository = $this->getRepository();
+
+        $this->expectException(EntityNotFoundException::class);
+        $repository->findOrFail('non-existent-id');
+    }
+
+    public function testFindOneByOrFail(): void
+    {
+        $repository = $this->getRepository();
+        $employee = new Employee(Uuid::uuid7()->toString(), 'Unique Person', new DateTimeImmutable(), null);
+        $repository->insert($employee);
+
+        $found = $repository->findOneByOrFail([Condition::equals(Schema::Name, 'Unique Person')]);
+        self::assertSame('Unique Person', $found->name);
+    }
+
+    public function testFindOneByOrFailThrowsOnMissing(): void
+    {
+        $repository = $this->getRepository();
+
+        $this->expectException(EntityNotFoundException::class);
+        $repository->findOneByOrFail([Condition::equals(Schema::Name, 'Nobody')]);
+    }
+
+    public function testInsertAllWithCustomChunkSize(): void
+    {
+        $repository = $this->getRepository();
+        $employees = [];
+        for ($i = 0; $i < 5; $i++) {
+            $employees[] = new Employee(Uuid::uuid7()->toString(), 'Chunk ' . $i, new DateTimeImmutable(), null);
+        }
+
+        self::assertSame(5, $repository->insertAll($employees, chunkSize: 2));
+        self::assertSame(5, $repository->count());
+    }
+
+    public function testFindByWithPagination(): void
+    {
+        $repository = $this->getRepository();
+        $employees = [];
+        for ($i = 0; $i < 20; $i++) {
+            $employees[] = new Employee(Uuid::uuid7()->toString(), sprintf('Person %02d', $i), new DateTimeImmutable(), null);
+        }
+        $repository->insertAll($employees);
+
+        // Limit only
+        $page = $repository->findBy(limit: 5);
+        self::assertCount(5, $page);
+
+        // Limit + offset
+        $page2 = $repository->findBy(limit: 5, offset: 5);
+        self::assertCount(5, $page2);
+        self::assertNotSame($page[0]->id, $page2[0]->id);
+
+        // No limit returns all
+        $all = $repository->findBy();
+        self::assertCount(20, $all);
     }
 
     private function getRepository(): Repository

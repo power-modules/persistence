@@ -149,16 +149,21 @@ $repo->save($user);
 // Create
 $repo->insert($user);                      // Insert a single entity
 $repo->insertAll([$user1, $user2, ...]);    // Bulk insert (auto-chunked, auto-transaction)
-$repo->save($user);                        // Upsert: inserts if new, updates if exists
+$repo->insertAll($entities, chunkSize: 50); // Custom chunk size (default: 100)
+$repo->save($user);                        // Insert if new, update if exists (2 queries)
+$repo->upsert($user);                      // Insert or update in a single query (ON CONFLICT)
 
 // Read
-$repo->find($id);                          // Find by primary key
+$repo->find($id);                          // Find by primary key (or null)
+$repo->findOrFail($id);                    // Find by primary key (or throw EntityNotFoundException)
 $repo->findBy([                            // Find all matching conditions
     Condition::equals(UserSchema::Email, 'test@example.com'),
 ]);
+$repo->findBy(limit: 10, offset: 20);      // Paginated results
 $repo->findOneBy([                         // Find first match or null
     Condition::equals(UserSchema::Name, 'John'),
 ]);
+$repo->findOneByOrFail([...]);             // Find first match or throw EntityNotFoundException
 $repo->count();                            // Count all rows
 $repo->exists([...]);                      // Check existence (bool)
 
@@ -253,7 +258,15 @@ try {
 
 ## ⚡ Upsert & Conflict Handling
 
-For advanced insert behavior, use the statement factory directly:
+The repository provides a convenient `upsert()` method for single-query insert-or-update:
+
+```php
+// Single-query upsert via ON CONFLICT ... DO UPDATE
+$repo->upsert($user);
+// Always returns 1 (whether inserted or updated)
+```
+
+For more control, use the statement factory directly:
 
 ```php
 // Ignore duplicates (ON CONFLICT DO NOTHING)
@@ -261,7 +274,7 @@ $insert = $this->statementFactory->createInsertStatement('users', ['id', 'email'
 $insert->prepareBinds(['id' => $id, 'email' => $email]);
 $insert->ignoreDuplicates();
 
-// Upsert (ON CONFLICT ... DO UPDATE)
+// Custom upsert (ON CONFLICT ... DO UPDATE)
 $insert = $this->statementFactory->createInsertStatement('users', ['id', 'email', 'name']);
 $insert->prepareBinds(['id' => $id, 'email' => $email, 'name' => $name]);
 $insert->onConflictUpdate(

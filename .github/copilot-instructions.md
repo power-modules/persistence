@@ -6,7 +6,7 @@ Type-safe persistence layer for PHP 8.4+ (`Modular\Persistence\` namespace, PSR-
 
 **Database layer** (`src/Database/`): `IDatabase` extends `IQueryExecutor` + `ITransactionManager` (ISP). `Database` delegates to composed `QueryExecutor` and `TransactionManager` — never inherits from PDO. `PostgresDatabase` adds search_path management with namespace caching. `NamespaceAwarePostgresDatabase` is a **decorator** that auto-sets search_path before every query via `INamespaceProvider`.
 
-**Repository layer** (`src/Repository/`): `AbstractGenericRepository<TModel>` provides generic CRUD (`save`, `find`, `findBy`, `insert`, `insertAll`, `delete`, `deleteBy`, `count`, `exists`). Concrete repos only implement `getTableName(): string`. All SQL is built through `IStatementFactory` — never instantiate statements directly.
+**Repository layer** (`src/Repository/`): `AbstractGenericRepository<TModel>` provides generic CRUD (`save`, `upsert`, `find`, `findOrFail`, `findBy`, `findOneBy`, `findOneByOrFail`, `insert`, `insertAll`, `delete`, `deleteBy`, `count`, `exists`). Concrete repos only implement `getTableName(): string`. All SQL is built through `IStatementFactory` — never instantiate statements directly.
 
 **Schema** (`src/Schema/`): Database schemas are **backed string enums** implementing `ISchema`. Each case is a column name, `getColumnDefinition()` returns immutable `ColumnDefinition` builders. Hydrators (`IHydrator<TModel>`) own entity↔row mapping AND entity identity (`getId`, `getIdFieldName`). Use `TStandardIdentity` trait for the common `id` field case.
 
@@ -15,7 +15,8 @@ Type-safe persistence layer for PHP 8.4+ (`Modular\Persistence\` namespace, PSR-
 - **Hydrator is identity authority**: `save()` calls `hydrator->getId()` to decide insert vs update. Implement `getId`/`getIdFieldName` correctly or use `TStandardIdentity`.
 - **Enum-as-Schema**: Column references are type-safe enum cases (`UserSchema::Email`), not raw strings. `Condition::equals(UserSchema::Email, $val)`.
 - **Statement factory only**: Never instantiate `SelectStatement`, `InsertStatement`, etc. directly. Use `$this->statementFactory->createSelectStatement(...)`. This ensures multi-tenancy namespace support works.
-- **Upsert support**: `InsertStatement` supports `ignoreDuplicates()` (ON CONFLICT DO NOTHING) and `onConflictUpdate()` (ON CONFLICT ... DO UPDATE).
+- **Upsert support**: `upsert()` on repository does single-query `ON CONFLICT ... DO UPDATE`. `InsertStatement` also supports `ignoreDuplicates()` (ON CONFLICT DO NOTHING) and `onConflictUpdate()` directly.
+- **findOrFail / findOneByOrFail**: Throw `EntityNotFoundException` (extends `PersistenceException`) when entity not found instead of returning null.
 - **PHP 8.4 features**: Asymmetric visibility (`public private(set)`), property hooks (auto-converting `BackedEnum` to string in `Condition`, `Join`), `readonly` classes, constructor promotion.
 - **Immutable builders**: `ColumnDefinition::text($col)->nullable()->default('x')` returns new instances.
 - **Multi-tenancy via search_path**: Use `NamespaceAwarePostgresDatabase` decorator + `RuntimeNamespaceProvider`. Statement factories accept `string|INamespaceProvider` for namespace-qualified table names.
@@ -26,12 +27,14 @@ Type-safe persistence layer for PHP 8.4+ (`Modular\Persistence\` namespace, PSR-
 ## Developer Workflow
 
 ```bash
-make test        # PHPUnit (test/)
+make test        # PHPUnit with --display-all-issues (test/)
 make codestyle   # PHP-CS-Fixer check (PSR-12 base, trailing commas, ordered imports, strict_types)
 make phpstan     # PHPStan level 8 on src/ + test/
 ```
 
 **Before finishing any task**: Run `make phpstan && make test` and fix all errors. Repeat until clean.
+
+When running PHPUnit manually, always use `--display-all-issues` flag.
 
 ## Testing Conventions
 
@@ -61,4 +64,5 @@ php bin/console persistence:generate-schema SchemaClass  # Outputs .sql alongsid
 - Query conditions: [src/Repository/Condition.php](src/Repository/Condition.php) (14 static factories: `equals`, `in`, `isNull`, `like`, `ilike`, `exists`, etc.)
 - Statement factory: [src/Repository/Statement/Factory/GenericStatementFactory.php](src/Repository/Statement/Factory/GenericStatementFactory.php)
 - Column definitions: [src/Schema/Definition/ColumnDefinition.php](src/Schema/Definition/ColumnDefinition.php)
+- Logging decorator: [src/Database/LoggingQueryExecutor.php](src/Database/LoggingQueryExecutor.php)
 - Test fixture (full pattern): [test/Unit/Repository/Fixture/](test/Unit/Repository/Fixture/)
