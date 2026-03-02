@@ -300,6 +300,25 @@ $select->setStart(0);
 
 Supported join types: `Inner`, `Left`, `Outer`.
 
+### Type-cast joins (`localKeyType`)
+
+When the local key column stores values as `text` but the foreign key expects a specific type (e.g. `uuid`, `integer`), pass the `localKeyType` parameter:
+
+```php
+$select->addJoin(
+    new Join(
+        JoinType::Inner,
+        'departments',
+        'dept_uuid',        // Local key (text column)
+        'id',               // Foreign key (uuid column)
+        localKeyType: 'uuid',
+    ),
+);
+// Produces: INNER JOIN "departments" ON "departments"."id" = NULLIF("employees"."dept_uuid", '')::uuid
+```
+
+The generated SQL uses `NULLIF(col, '')::type` to safely handle empty strings — an empty string is converted to `NULL` before casting, preventing PostgreSQL errors like `invalid input syntax for type uuid: ""`.
+
 ## 🔄 Transactions
 
 The `IDatabase` interface provides full transaction control:
