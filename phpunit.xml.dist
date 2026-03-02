@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         colors="true"
+         failOnWarning="true"
+         failOnRisky="true"
+         displayDetailsOnTestsThatTriggerDeprecations="true"
+         displayDetailsOnTestsThatTriggerErrors="true"
+         displayDetailsOnTestsThatTriggerNotices="true"
+         displayDetailsOnTestsThatTriggerWarnings="true"
+         displayDetailsOnIncompleteTests="true"
+         displayDetailsOnSkippedTests="true"
+>
+    <php>
+        <env name="DB_DSN" value="pgsql:host=127.0.0.1;port=15432;dbname=persistence_test"/>
+        <env name="DB_USER" value="persistence_test"/>
+        <env name="DB_PASSWORD" value="persistence_test"/>
+    </php>
+
+    <testsuites>
+        <testsuite name="unit">
+            <directory>test/Unit</directory>
+        </testsuite>
+        <testsuite name="integration">
+            <directory>test/Integration</directory>
+        </testsuite>
+    </testsuites>
+</phpunit>

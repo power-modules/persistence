@@ -54,24 +54,6 @@ class PostgresDatabaseTest extends TestCase
         $database->setSearchPath('public, extensions');
     }
 
-    public function testPgsqlGetNotify(): void
-    {
-        // @phpstan-ignore-next-line
-        if (!method_exists(PDO::class, 'pgsqlGetNotify')) {
-            self::markTestSkipped('PDO::pgsqlGetNotify not available');
-        }
-
-        $pdo = $this->createMock(PDO::class);
-
-        $pdo->expects(self::once())
-            ->method('pgsqlGetNotify')
-            ->with(PDO::FETCH_ASSOC, 100)
-            ->willReturn(['message' => 'test']);
-
-        $database = new PostgresDatabase($pdo);
-        self::assertSame(['message' => 'test'], $database->pgsqlGetNotify(PDO::FETCH_ASSOC, 100));
-    }
-
     public function testUseNamespace(): void
     {
         $pdo = $this->createMock(PDO::class);

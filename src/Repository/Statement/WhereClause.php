@@ -157,11 +157,15 @@ class WhereClause
         }
 
         if ($condition->operator === Operator::JsonHasKey) {
-            return sprintf('%s %s %s', $condition->column, $condition->operator->value, $this->binds[$bindIndex++]->name);
+            return sprintf('jsonb_exists(%s, %s)', $condition->column, $this->binds[$bindIndex++]->name);
         }
 
-        if (in_array($condition->operator, [Operator::JsonHasAnyKey, Operator::JsonHasAllKeys], true)) {
-            return sprintf('%s %s %s::text[]', $condition->column, $condition->operator->value, $this->binds[$bindIndex++]->name);
+        if ($condition->operator === Operator::JsonHasAnyKey) {
+            return sprintf('jsonb_exists_any(%s, %s::text[])', $condition->column, $this->binds[$bindIndex++]->name);
+        }
+
+        if ($condition->operator === Operator::JsonHasAllKeys) {
+            return sprintf('jsonb_exists_all(%s, %s::text[])', $condition->column, $this->binds[$bindIndex++]->name);
         }
 
         return sprintf('%s %s %s', $condition->column, $condition->operator->value, $this->binds[$bindIndex++]->name);

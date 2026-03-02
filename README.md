@@ -239,13 +239,13 @@ Condition::jsonContains(ArticleSchema::Metadata, '{"status":"active"}');
 // Reverse containment: metadata <@ '{"status":"active","lang":"en"}'::jsonb
 Condition::jsonContainedBy(ArticleSchema::Metadata, '{"status":"active","lang":"en"}');
 
-// Key existence: metadata ? 'status'
+// Key existence: jsonb_exists(metadata, 'status')
 Condition::jsonHasKey(ArticleSchema::Metadata, 'status');
 
-// Any key existence: metadata ?| array['status','lang']
+// Any key existence: jsonb_exists_any(metadata, array['status','lang'])
 Condition::jsonHasAnyKey(ArticleSchema::Metadata, ['status', 'lang']);
 
-// All keys existence: metadata ?& array['status','lang']
+// All keys existence: jsonb_exists_all(metadata, array['status','lang'])
 Condition::jsonHasAllKeys(ArticleSchema::Metadata, ['status', 'lang']);
 
 // JSON path expression with standard operators (column expression is NOT quoted)
@@ -499,3 +499,46 @@ use Modular\Persistence\Database\LoggingQueryExecutor;
 $loggingExecutor = new LoggingQueryExecutor($queryExecutor, $logger);
 // Logs: query string, elapsed_ms, affected_rows (for exec)
 ```
+
+## 🧪 Development & Testing
+
+### Prerequisites
+
+- PHP 8.4+
+- Docker & Docker Compose
+
+### Local Setup
+
+```bash
+# Start PostgreSQL (port 15432)
+make docker-up
+
+# Run all tests (unit + integration)
+make test
+
+# Run unit tests only (no DB required)
+make test-unit
+
+# Run integration tests only (requires PostgreSQL)
+make test-integration
+
+# Static analysis (PHPStan level 8)
+make phpstan
+
+# Code style check
+make codestyle
+
+# Stop PostgreSQL
+make docker-down
+```
+
+### Test Architecture
+
+- **Unit tests** (`test/Unit/`): Fast, no database — mock `IDatabase`/`IQueryExecutor` to verify SQL generation and bind parameters
+- **Integration tests** (`test/Integration/`): Run against a real PostgreSQL 17 instance, testing the full stack from repository through PDO
+- **Test isolation**: Integration tests use transaction-based isolation (`BEGIN` in setUp / `ROLLBACK` in tearDown) for speed. Tests that exercise transactions or DDL manage their own cleanup.
+- **Fixtures**: `test/Integration/Fixture/` contains Employee, Product (JSONB), and Note schemas/entities/hydrators/repositories
+
+### CI
+
+The GitHub Actions workflow automatically provisions a PostgreSQL service container and runs the full suite on every push/PR.

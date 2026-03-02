@@ -24,7 +24,7 @@ Type-safe persistence layer for PHP 8.4+ (`Modular\Persistence\` namespace, PSR-
 - **Type-hint `IRepository`**: Consumers (services, controllers) should depend on `IRepository<TModel>`, not `AbstractGenericRepository`. This enables decorator patterns (e.g., caching repos) and testability.
 - **Generic templates**: Repositories and hydrators use `@template TModel of object` with `@extends` for PHPStan level 8 type safety.
 - **Foreign keys**: Schema enums implement `IHasForeignKeys` for FK constraints, including cross-schema FKs via `foreignSchemaName`.
-- **JSONB query support**: `Operator` has JSONB cases (`JsonContains`, `JsonContainedBy`, `JsonHasKey`, `JsonHasAnyKey`, `JsonHasAllKeys`). `Condition` provides matching factories (`jsonContains`, `jsonContainedBy`, `jsonHasKey`, `jsonHasAnyKey`, `jsonHasAllKeys`, `jsonPath`). `WhereClause` renders `::jsonb` / `::text[]` casts automatically.
+- **JSONB query support**: `Operator` has JSONB cases (`JsonContains`, `JsonContainedBy`, `JsonHasKey`, `JsonHasAnyKey`, `JsonHasAllKeys`). `Condition` provides matching factories (`jsonContains`, `jsonContainedBy`, `jsonHasKey`, `jsonHasAnyKey`, `jsonHasAllKeys`, `jsonPath`). `WhereClause` renders `::jsonb` / `::text[]` casts automatically. JSONB key-existence operators (`JsonHasKey`, `JsonHasAnyKey`, `JsonHasAllKeys`) are rendered as `jsonb_exists()`, `jsonb_exists_any()`, `jsonb_exists_all()` function calls instead of `?` / `?|` / `?&` operators to avoid PDO positional parameter conflicts.
 - **Raw SQL conditions**: `WhereClause::addRaw(string $sql, array $binds)` and `addRawCondition()` on `SelectStatement`, `UpdateStatement`, `DeleteStatement` inject raw SQL fragments with bind values. Used for expressions that can't be represented via `Condition` (custom casts, complex JSONB paths, functions). Raw conditions are AND-joined with standard condition groups.
 - **Bind::json() factory**: Creates binds for JSONB values. Arrays are auto-`json_encode()`d. Strings pass through as-is. No BC break — `Bind::create()` remains scalar-only.
 - **Expression indexes**: `Index::expression(string $expression, IndexType $type)` creates an index where the column expression is stored verbatim (not quoted as an identifier). Used for JSONB path or functional indexes. `PostgresSchemaQueryGenerator` checks `$index->isExpression` to skip quoting.
@@ -33,9 +33,13 @@ Type-safe persistence layer for PHP 8.4+ (`Modular\Persistence\` namespace, PSR-
 ## Developer Workflow
 
 ```bash
-make test        # PHPUnit with --display-all-issues (test/)
-make codestyle   # PHP-CS-Fixer check (PSR-12 base, trailing commas, ordered imports, strict_types)
-make phpstan     # PHPStan level 8 on src/ + test/
+make docker-up         # Start PostgreSQL 17 on port 15432
+make docker-down       # Stop PostgreSQL
+make test              # Run all tests (unit + integration)
+make test-unit         # Run unit tests only (no DB required)
+make test-integration  # Run integration tests only (requires PostgreSQL)
+make codestyle         # PHP-CS-Fixer check (PSR-12 base, trailing commas, ordered imports, strict_types)
+make phpstan           # PHPStan level 8 on src/ + test/
 ```
 
 **Before finishing any task**: Run `make phpstan && make test` and fix all errors. Repeat until clean.
@@ -47,10 +51,13 @@ When running PHPUnit manually, always use `--display-all-issues` flag.
 ## Testing Conventions
 
 - PHPUnit 12.5, attributes-based (`#[CoversClass(...)]`), `self::assert*` static style.
-- `test/Unit/` mirrors `src/` structure; `test/Integration/` for DB connection tests.
-- Fixtures in `test/Unit/Repository/Fixture/` — reference `EmployeeSchema`, `Employee`, `EmployeeHydrator`, `EmployeeRepository` for pattern examples.
-- Integration-style unit tests use **SQLite in-memory** (`new PDO('sqlite::memory:')`) — create tables, exercise full CRUD.
-- Mock `IDatabase`/`IQueryExecutor` with `createMock()`/`createStub()` for isolated statement/bind verification.
+- `test/Unit/` mirrors `src/` structure; `test/Integration/` for real PostgreSQL tests.
+- Unit test fixtures in `test/Unit/Repository/Fixture/` — reference `EmployeeSchema`, `Employee`, `EmployeeHydrator`, `EmployeeRepository` for pattern examples.
+- Integration test fixtures in `test/Integration/Fixture/` — PostgreSQL-compatible schemas using VARCHAR/UUID primary keys (not autoincrement).
+- Integration tests extend `PostgresTestCase` (`test/Integration/Support/`) for transaction-based isolation (BEGIN in setUp, ROLLBACK in tearDown).
+- Tests needing explicit transaction or DDL control (e.g., `MultiTenancyTest`, `TransactionTest`) extend `TestCase` directly and manage cleanup manually.
+- Mock `IDatabase`/`IQueryExecutor` with `createMock()`/`createStub()` for isolated statement/bind verification in unit tests.
+- Docker PostgreSQL on port 15432 locally; CI uses a GitHub Actions service container on port 5432.
 
 ## Code Style
 
@@ -77,4 +84,6 @@ php bin/console persistence:generate-schema SchemaClass  # Outputs .sql alongsid
 - Statement factory: [src/Repository/Statement/Factory/GenericStatementFactory.php](src/Repository/Statement/Factory/GenericStatementFactory.php)
 - Column definitions: [src/Schema/Definition/ColumnDefinition.php](src/Schema/Definition/ColumnDefinition.php)
 - Logging decorator: [src/Database/LoggingQueryExecutor.php](src/Database/LoggingQueryExecutor.php)
-- Test fixture (full pattern): [test/Unit/Repository/Fixture/](test/Unit/Repository/Fixture/)
+- Unit test fixtures: [test/Unit/Repository/Fixture/](test/Unit/Repository/Fixture/)
+- Integration test fixtures: [test/Integration/Fixture/](test/Integration/Fixture/)
+- Integration test base class: [test/Integration/Support/PostgresTestCase.php](test/Integration/Support/PostgresTestCase.php)

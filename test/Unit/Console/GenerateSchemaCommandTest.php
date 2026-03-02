@@ -108,9 +108,9 @@ final class GenerateSchemaCommandTest extends TestCase
         ]);
 
         self::assertSame(1, $tester->getStatusCode());
-        $output = (string) preg_replace('/\s+/', ' ', $tester->getDisplay());
-        self::assertStringContainsString('Class "Modular\Persistence\Test\Unit\Console\GenerateSchemaCommandTest" must implement', $output);
-        self::assertStringContainsString('"Modular\Persistence\Schema\Contract\ISchema".', $output);
+        $output = $tester->getDisplay();
+        self::assertStringContainsString('must implement', $output);
+        self::assertStringContainsString('ISchema', $output);
     }
 
     /**

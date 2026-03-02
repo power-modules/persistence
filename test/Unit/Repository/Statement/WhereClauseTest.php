@@ -181,7 +181,7 @@ final class WhereClauseTest extends TestCase
         $where = new WhereClause();
         $where->add(Condition::jsonHasKey('metadata', 'status'));
 
-        self::assertSame(' WHERE (metadata ? :w_0_metadata)', $where->toSql());
+        self::assertSame(' WHERE (jsonb_exists(metadata, :w_0_metadata))', $where->toSql());
         $binds = $where->getBinds();
         self::assertCount(1, $binds);
         self::assertSame('status', $binds[0]->value);
@@ -192,7 +192,7 @@ final class WhereClauseTest extends TestCase
         $where = new WhereClause();
         $where->add(Condition::jsonHasAnyKey('metadata', ['status', 'lang']));
 
-        self::assertSame(' WHERE (metadata ?| :w_0_metadata::text[])', $where->toSql());
+        self::assertSame(' WHERE (jsonb_exists_any(metadata, :w_0_metadata::text[]))', $where->toSql());
         $binds = $where->getBinds();
         self::assertCount(1, $binds);
         self::assertSame('{status,lang}', $binds[0]->value);
@@ -203,7 +203,7 @@ final class WhereClauseTest extends TestCase
         $where = new WhereClause();
         $where->add(Condition::jsonHasAllKeys('metadata', ['status', 'lang']));
 
-        self::assertSame(' WHERE (metadata ?& :w_0_metadata::text[])', $where->toSql());
+        self::assertSame(' WHERE (jsonb_exists_all(metadata, :w_0_metadata::text[]))', $where->toSql());
         $binds = $where->getBinds();
         self::assertCount(1, $binds);
         self::assertSame('{status,lang}', $binds[0]->value);
