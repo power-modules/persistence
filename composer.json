@@ -24,7 +24,7 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Modular\\Persistence\\Test\\": "test/"
+            "Modular\\Persistence\\Tests\\": "tests/"
         }
     },
     "require": {

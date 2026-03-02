@@ -39,7 +39,7 @@ make test              # Run all tests (unit + integration)
 make test-unit         # Run unit tests only (no DB required)
 make test-integration  # Run integration tests only (requires PostgreSQL)
 make codestyle         # PHP-CS-Fixer check (PSR-12 base, trailing commas, ordered imports, strict_types)
-make phpstan           # PHPStan level 8 on src/ + test/
+make phpstan           # PHPStan level 8 on src/ + tests/
 ```
 
 **Before finishing any task**: Run `make phpstan && make test` and fix all errors. Repeat until clean.
@@ -51,11 +51,12 @@ When running PHPUnit manually, always use `--display-all-issues` flag.
 ## Testing Conventions
 
 - PHPUnit 12.5, attributes-based (`#[CoversClass(...)]`), `self::assert*` static style.
-- `test/Unit/` mirrors `src/` structure; `test/Integration/` for real PostgreSQL tests.
-- Unit test fixtures in `test/Unit/Repository/Fixture/` — reference `EmployeeSchema`, `Employee`, `EmployeeHydrator`, `EmployeeRepository` for pattern examples.
-- Integration test fixtures in `test/Integration/Fixture/` — PostgreSQL-compatible schemas using VARCHAR/UUID primary keys (not autoincrement).
-- Integration tests extend `PostgresTestCase` (`test/Integration/Support/`) for transaction-based isolation (BEGIN in setUp, ROLLBACK in tearDown).
-- Tests needing explicit transaction or DDL control (e.g., `MultiTenancyTest`, `TransactionTest`) extend `TestCase` directly and manage cleanup manually.
+- `tests/Unit/` mirrors `src/` structure; `tests/Integration/` for real PostgreSQL tests.
+- Namespace: `Modular\Persistence\Tests\` (PSR-4 → `tests/`).
+- Unit test fixtures in `tests/Unit/Fixture/` — reference `EmployeeSchema`, `Employee`, `EmployeeHydrator`, `EmployeeRepository` for pattern examples.
+- Integration test fixtures in `tests/Integration/Fixture/` — PostgreSQL-compatible schemas using VARCHAR/UUID primary keys (not autoincrement).
+- Integration tests extend `PostgresTestCase` (`tests/Integration/Support/`) for transaction-based isolation (BEGIN in setUp, ROLLBACK in tearDown).
+- Tests needing explicit transaction or DDL control (e.g., `MultiTenancyTest`, `TransactionTest`) extend `TestCase` directly and use the `ConnectionHelper` trait.
 - Mock `IDatabase`/`IQueryExecutor` with `createMock()`/`createStub()` for isolated statement/bind verification in unit tests.
 - Docker PostgreSQL on port 15432 locally; CI uses a GitHub Actions service container on port 5432.
 
@@ -84,6 +85,6 @@ php bin/console persistence:generate-schema SchemaClass  # Outputs .sql alongsid
 - Statement factory: [src/Repository/Statement/Factory/GenericStatementFactory.php](src/Repository/Statement/Factory/GenericStatementFactory.php)
 - Column definitions: [src/Schema/Definition/ColumnDefinition.php](src/Schema/Definition/ColumnDefinition.php)
 - Logging decorator: [src/Database/LoggingQueryExecutor.php](src/Database/LoggingQueryExecutor.php)
-- Unit test fixtures: [test/Unit/Repository/Fixture/](test/Unit/Repository/Fixture/)
-- Integration test fixtures: [test/Integration/Fixture/](test/Integration/Fixture/)
-- Integration test base class: [test/Integration/Support/PostgresTestCase.php](test/Integration/Support/PostgresTestCase.php)
+- Unit test fixtures: [tests/Unit/Fixture/](tests/Unit/Fixture/)
+- Integration test fixtures: [tests/Integration/Fixture/](tests/Integration/Fixture/)
+- Integration test base class: [tests/Integration/Support/PostgresTestCase.php](tests/Integration/Support/PostgresTestCase.php)
