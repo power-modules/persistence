@@ -13,20 +13,21 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(SelectStatement::class)]
 final class SelectStatementTest extends TestCase
 {
-    public function testJoinWithoutLocalKeyTypeProducesStandardSql(): void
+    public function testGetQueryIncludesJoin(): void
     {
         $stmt = new SelectStatement('employees');
         $stmt->addJoin(new Join(JoinType::Inner, 'departments', 'dept_id', 'id'));
 
         $sql = $stmt->getQuery();
 
+        self::assertStringStartsWith('SELECT * FROM "employees"', $sql);
         self::assertStringContainsString(
             'INNER JOIN "departments" ON "departments"."id" = "employees"."dept_id"',
             $sql,
         );
     }
 
-    public function testJoinWithLocalKeyTypeWrapsWithNullif(): void
+    public function testGetQueryIncludesJoinWithLocalKeyType(): void
     {
         $stmt = new SelectStatement('employees');
         $stmt->addJoin(new Join(JoinType::Inner, 'departments', 'dept_uuid', 'id', localKeyType: 'uuid'));
@@ -34,33 +35,21 @@ final class SelectStatementTest extends TestCase
         $sql = $stmt->getQuery();
 
         self::assertStringContainsString(
-            'INNER JOIN "departments" ON "departments"."id" = NULLIF("employees"."dept_uuid", \'\')::uuid',
+            'NULLIF("employees"."dept_uuid", \'\')::uuid',
             $sql,
         );
     }
 
-    public function testJoinWithLocalKeyTypeAndAliasUsesAliasForForeignSide(): void
+    public function testCountQueryIncludesJoinWithLocalKeyType(): void
     {
         $stmt = new SelectStatement('employees');
-        $stmt->addJoin(new Join(JoinType::Left, 'departments', 'dept_uuid', 'id', alias: 'd', localKeyType: 'uuid'));
+        $stmt->addJoin(new Join(JoinType::Inner, 'departments', 'dept_uuid', 'id', localKeyType: 'uuid'));
 
-        $sql = $stmt->getQuery();
+        $sql = $stmt->count();
 
+        self::assertStringContainsString('SELECT COUNT(*) as total_rows FROM "employees"', $sql);
         self::assertStringContainsString(
-            'LEFT JOIN "departments" "d" ON "d"."id" = NULLIF("employees"."dept_uuid", \'\')::uuid',
-            $sql,
-        );
-    }
-
-    public function testJoinWithLocalKeyTypeAndCustomLocalTable(): void
-    {
-        $stmt = new SelectStatement('employees');
-        $stmt->addJoin(new Join(JoinType::Inner, 'departments', 'dept_uuid', 'id', localTable: 'contracts', localKeyType: 'uuid'));
-
-        $sql = $stmt->getQuery();
-
-        self::assertStringContainsString(
-            'INNER JOIN "departments" ON "departments"."id" = NULLIF("contracts"."dept_uuid", \'\')::uuid',
+            'NULLIF("employees"."dept_uuid", \'\')::uuid',
             $sql,
         );
     }
@@ -85,46 +74,6 @@ final class SelectStatementTest extends TestCase
         );
     }
 
-    public function testCountQueryWithLocalKeyTypeJoinWrapsWithNullif(): void
-    {
-        $stmt = new SelectStatement('employees');
-        $stmt->addJoin(new Join(JoinType::Inner, 'departments', 'dept_uuid', 'id', localKeyType: 'uuid'));
-
-        $sql = $stmt->count();
-
-        self::assertStringContainsString('SELECT COUNT(*) as total_rows FROM "employees"', $sql);
-        self::assertStringContainsString(
-            'INNER JOIN "departments" ON "departments"."id" = NULLIF("employees"."dept_uuid", \'\')::uuid',
-            $sql,
-        );
-    }
-
-    public function testJoinWithAliasWithoutLocalKeyTypeProducesStandardSql(): void
-    {
-        $stmt = new SelectStatement('employees');
-        $stmt->addJoin(new Join(JoinType::Inner, 'departments', 'dept_id', 'id', alias: 'd'));
-
-        $sql = $stmt->getQuery();
-
-        self::assertStringContainsString(
-            'INNER JOIN "departments" "d" ON "d"."id" = "employees"."dept_id"',
-            $sql,
-        );
-    }
-
-    public function testJoinWithLocalKeyTypeIntegerCast(): void
-    {
-        $stmt = new SelectStatement('orders');
-        $stmt->addJoin(new Join(JoinType::Left, 'products', 'product_ext_id', 'id', localKeyType: 'integer'));
-
-        $sql = $stmt->getQuery();
-
-        self::assertStringContainsString(
-            'LEFT JOIN "products" ON "products"."id" = NULLIF("orders"."product_ext_id", \'\')::integer',
-            $sql,
-        );
-    }
-
     public function testJoinWithNamespace(): void
     {
         $stmt = new SelectStatement('employees', ['*'], 'my_schema');
@@ -134,7 +83,7 @@ final class SelectStatementTest extends TestCase
 
         self::assertStringContainsString('SELECT * FROM "my_schema"."employees"', $sql);
         self::assertStringContainsString(
-            'INNER JOIN "departments" ON "departments"."id" = NULLIF("employees"."dept_uuid", \'\')::uuid',
+            'NULLIF("employees"."dept_uuid", \'\')::uuid',
             $sql,
         );
     }

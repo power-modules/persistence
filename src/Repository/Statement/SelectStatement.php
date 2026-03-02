@@ -194,43 +194,7 @@ class SelectStatement implements ISelectStatement
             $joins = [];
 
             foreach ($this->join as $join) {
-                $localTable = $join->localTable ?? $this->tableName;
-
-                // Build local key expression with optional safe type cast.
-                // NULLIF prevents empty-string-to-type cast errors (e.g. ''::uuid).
-                if ($join->localKeyType !== null) {
-                    $localKeyExpr = sprintf(
-                        'NULLIF("%s"."%s", \'\')::%s',
-                        $localTable,
-                        $join->localKey,
-                        $join->localKeyType,
-                    );
-                } else {
-                    $localKeyExpr = sprintf('"%s"."%s"', $localTable, $join->localKey);
-                }
-
-                if ($join->alias === null) {
-                    $joinStatement = sprintf(
-                        '%s JOIN "%s" ON "%s"."%s" = %s',
-                        $join->joinType->value,
-                        $join->table,
-                        $join->table,
-                        $join->foreignKey,
-                        $localKeyExpr,
-                    );
-                } else {
-                    $joinStatement = sprintf(
-                        '%s JOIN "%s" "%s" ON "%s"."%s" = %s',
-                        $join->joinType->value,
-                        $join->table,
-                        $join->alias,
-                        $join->alias,
-                        $join->foreignKey,
-                        $localKeyExpr,
-                    );
-                }
-
-                $joins[] = $joinStatement;
+                $joins[] = $join->toSql($this->tableName);
             }
 
             $this->statement = sprintf('%s %s', $this->statement, implode(' ', $joins));
