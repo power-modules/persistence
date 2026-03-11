@@ -90,7 +90,8 @@ enum UserSchema: string implements ISchema, IHasIndexes
 }
 ```
 
-#### 2. Create Entity & Hydrator
+#### 2. Implement persistence layer: entity, hydrator and repository
+> **Note:** You can generate these classes via the CLI commands (`persistence:make-entity`, `persistence:make-hydrator`, `persistence:make-repository`)
 ```php
 readonly class User
 {
@@ -101,6 +102,9 @@ readonly class User
     ) {}
 }
 
+/**
+ * @implements IHydrator<User>
+ */
 class UserHydrator implements IHydrator
 {
     use TStandardIdentity;
@@ -123,10 +127,10 @@ class UserHydrator implements IHydrator
         ];
     }
 }
-```
 
-#### 3. Use Repository
-```php
+/**
+ * @extends AbstractGenericRepository<User>
+ */
 class UserRepository extends AbstractGenericRepository
 {
     protected function getTableName(): string
@@ -134,8 +138,32 @@ class UserRepository extends AbstractGenericRepository
         return UserSchema::getTableName();
     }
 }
+```
 
-// Usage
+#### 3. Register persistence layer in a module
+```php
+
+class UserModule implements PowerModule, ImportsComponents
+{
+    public static function imports(): array
+    {
+        return [
+            ImportItem::create(PersistenceModule::class, PostgresDatabase::class),
+        ];
+    }
+
+    public function register(ConfigurableContainerInterface $container): void
+    {
+        $container->set(UserRepository::class, UserRepository::class)
+            ->addArguments([
+                PostgresDatabase::class,
+                UserHydrator::class,
+            ])
+        ;
+    }
+}
+
+#### 4. Use Repository
 $repo = $app->get(UserRepository::class);
 $user = new User(Uuid::uuid7()->toString(), 'test@example.com', 'Test User');
 $repo->upsert($user);
@@ -287,9 +315,9 @@ $select = $this->statementFactory->createSelectStatement($this->getTableName());
 $select->addJoin(
     new Join(
         JoinType::Left,
-        'orders',
-        UserSchema::Id,          // Local key (accepts BackedEnum)
-        OrderSchema::UserId,     // Foreign key (accepts BackedEnum)
+        OrderSchema::getTableName(),
+        UserSchema::Id,      // Local key (accepts BackedEnum)
+        OrderSchema::UserId, // Foreign key (accepts BackedEnum)
     ),
 );
 $select->addCondition(Condition::notNull(OrderSchema::Id));
@@ -344,7 +372,7 @@ The repository provides a convenient `upsert()` method for single-query insert-o
 
 ```php
 // Single-query upsert via ON CONFLICT ... DO UPDATE
-$repo->upsert($user);
+$repo->upsert($user); // Defaulted to conflict on primary key, updates all non-key columns
 // Always returns 1 (whether inserted or updated)
 ```
 
@@ -389,7 +417,7 @@ $nsProvider->setNamespace('tenant_123');
 $repo->findBy(); 
 // Internally executes: 
 // SET search_path TO "tenant_123"; 
-// SELECT * FROM "users";
+// SELECT * FROM "users"; # Will query tenant_123.users due to search_path
 ```
 
 ## 🗂️ Schema Features
