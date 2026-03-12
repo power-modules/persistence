@@ -61,13 +61,13 @@ class PostgresDatabase extends Database implements IPostgresDatabase
         return $result;
     }
 
-    private function quoteIdentifier(string $identifier): string
-    {
-        return sprintf('"%s"', str_replace('"', '""', trim($identifier)));
-    }
-
     public function pgsqlGetNotify(int $fetchMode = PDO::FETCH_DEFAULT, int $timeoutMilliseconds = 0): array|false
     {
         return $this->getPdo()->pgsqlGetNotify($fetchMode, $timeoutMilliseconds);
+    }
+
+    private function quoteIdentifier(string $identifier): string
+    {
+        return sprintf('"%s"', str_replace('"', '""', trim($identifier)));
     }
 }

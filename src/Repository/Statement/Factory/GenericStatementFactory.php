@@ -22,15 +22,6 @@ class GenericStatementFactory implements IStatementFactory
     ) {
     }
 
-    private function getNamespace(): string
-    {
-        if ($this->namespace instanceof INamespaceProvider) {
-            return $this->namespace->getNamespace();
-        }
-
-        return $this->namespace;
-    }
-
     public function createSelectStatement(string $tableName): ISelectStatement
     {
         return new SelectStatement($tableName, ['*'], $this->getNamespace());
@@ -52,5 +43,14 @@ class GenericStatementFactory implements IStatementFactory
     public function createDeleteStatement(string $tableName): IDeleteStatement
     {
         return new DeleteStatement($tableName, $this->getNamespace());
+    }
+
+    private function getNamespace(): string
+    {
+        if ($this->namespace instanceof INamespaceProvider) {
+            return $this->namespace->getNamespace();
+        }
+
+        return $this->namespace;
     }
 }

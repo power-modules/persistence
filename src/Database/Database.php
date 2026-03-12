@@ -21,11 +21,6 @@ class Database implements IDatabase, ITransactionManager, IQueryExecutor
         $this->queryExecutor = $queryExecutor ?? new QueryExecutor($pdo);
     }
 
-    protected function getPdo(): PDO
-    {
-        return $this->pdo;
-    }
-
     public function beginTransaction(): bool
     {
         return $this->transactionManager->beginTransaction();
@@ -69,5 +64,10 @@ class Database implements IDatabase, ITransactionManager, IQueryExecutor
     public function rollBack(): bool
     {
         return $this->transactionManager->rollBack();
+    }
+
+    protected function getPdo(): PDO
+    {
+        return $this->pdo;
     }
 }

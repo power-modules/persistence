@@ -20,17 +20,6 @@ class NamespaceAwarePostgresDatabase implements IPostgresDatabase
     ) {
     }
 
-    private function ensureNamespace(): void
-    {
-        $namespace = $this->namespaceProvider->getNamespace();
-        // We only switch if a namespace is actually provided.
-        // If the provider returns empty/null, we might want to stick to default or do nothing.
-        // Assuming getNamespace() returns string.
-        if ($namespace !== '') {
-            $this->database->useNamespace($namespace);
-        }
-    }
-
     public function prepare(string $query, array $options = []): PDOStatement
     {
         $this->ensureNamespace();
@@ -102,5 +91,16 @@ class NamespaceAwarePostgresDatabase implements IPostgresDatabase
     public function pgsqlGetNotify(int $fetchMode = PDO::FETCH_DEFAULT, int $timeoutMilliseconds = 0): array|false
     {
         return $this->database->pgsqlGetNotify($fetchMode, $timeoutMilliseconds);
+    }
+
+    private function ensureNamespace(): void
+    {
+        $namespace = $this->namespaceProvider->getNamespace();
+        // We only switch if a namespace is actually provided.
+        // If the provider returns empty/null, we might want to stick to default or do nothing.
+        // Assuming getNamespace() returns string.
+        if ($namespace !== '') {
+            $this->database->useNamespace($namespace);
+        }
     }
 }
