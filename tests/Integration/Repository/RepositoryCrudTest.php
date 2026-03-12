@@ -15,7 +15,6 @@ use Modular\Persistence\Tests\Integration\Fixture\EmployeeRepository;
 use Modular\Persistence\Tests\Integration\Fixture\EmployeeSchema;
 use Modular\Persistence\Tests\Integration\Support\PostgresTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use Ramsey\Uuid\Uuid;
 
 /**
