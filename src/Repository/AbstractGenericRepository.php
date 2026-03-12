@@ -286,47 +286,6 @@ abstract class AbstractGenericRepository implements IRepository
         return $statement->fetchAll();
     }
 
-    protected function getSelectStatement(): ISelectStatement
-    {
-        return $this->statementFactory->createSelectStatement($this->getTableName());
-    }
-
-    protected function getUpdateStatement(): IUpdateStatement
-    {
-        return $this->statementFactory->createUpdateStatement($this->getTableName());
-    }
-
-    /**
-     * @param array<string> $columns
-     */
-    protected function getInsertStatement(array $columns): IInsertStatement
-    {
-        return $this->statementFactory->createInsertStatement($this->getTableName(), $columns);
-    }
-
-    protected function getDeleteStatement(): IDeleteStatement
-    {
-        return $this->statementFactory->createDeleteStatement($this->getTableName());
-    }
-
-    /**
-     * @param TModel $entity
-     *
-     * @deprecated Use upsert() instead — it performs the same insert-or-update in a single query.
-     */
-    #[\Deprecated(message: 'Use upsert() instead', since: '2.0')]
-    public function save(object $entity): int
-    {
-        $id = $this->hydrator->getId($entity);
-        $idFieldName = $this->hydrator->getIdFieldName();
-
-        if ($this->exists([new Condition($idFieldName, Operator::Equals, $id)])) {
-            return $this->update($entity);
-        }
-
-        return $this->insert($entity);
-    }
-
     /**
      * Upsert: insert or update in a single query using ON CONFLICT ... DO UPDATE.
      *
@@ -355,6 +314,29 @@ abstract class AbstractGenericRepository implements IRepository
         }
 
         return $statement->rowCount();
+    }
+
+    protected function getSelectStatement(): ISelectStatement
+    {
+        return $this->statementFactory->createSelectStatement($this->getTableName());
+    }
+
+    protected function getUpdateStatement(): IUpdateStatement
+    {
+        return $this->statementFactory->createUpdateStatement($this->getTableName());
+    }
+
+    /**
+     * @param array<string> $columns
+     */
+    protected function getInsertStatement(array $columns): IInsertStatement
+    {
+        return $this->statementFactory->createInsertStatement($this->getTableName(), $columns);
+    }
+
+    protected function getDeleteStatement(): IDeleteStatement
+    {
+        return $this->statementFactory->createDeleteStatement($this->getTableName());
     }
 
     /**

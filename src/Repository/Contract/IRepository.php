@@ -89,13 +89,6 @@ interface IRepository
 
     /**
      * @param TModel $entity
-     *
-     * @deprecated Use upsert() instead — it performs the same insert-or-update in a single query.
-     */
-    public function save(object $entity): int;
-
-    /**
-     * @param TModel $entity
      */
     public function upsert(object $entity): int;
 }

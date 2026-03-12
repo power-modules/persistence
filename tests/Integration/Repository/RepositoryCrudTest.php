@@ -376,27 +376,4 @@ final class RepositoryCrudTest extends PostgresTestCase
         $result = $repo->select($selectStatement);
         self::assertCount(1, $result);
     }
-
-    // ── Deprecated save() ────────────────────────────────────────────
-
-    #[IgnoreDeprecations]
-    public function testSaveInsertThenUpdate(): void
-    {
-        $repo = $this->getRepository();
-
-        $employee = new Employee(Uuid::uuid7()->toString(), 'Save Insert', new DateTimeImmutable(), null);
-        self::assertSame(1, $repo->save($employee));
-
-        $found = $repo->find($employee->id);
-        self::assertNotNull($found);
-        self::assertSame('Save Insert', $found->name);
-
-        $updated = $employee->withName('Save Update');
-        self::assertSame(1, $repo->save($updated));
-
-        $found = $repo->find($employee->id);
-        self::assertNotNull($found);
-        self::assertSame('Save Update', $found->name);
-        self::assertSame(1, $repo->count());
-    }
 }
