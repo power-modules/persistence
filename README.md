@@ -192,7 +192,6 @@ All repository methods:
 $repo->insert($user);                      // Insert a single entity
 $repo->insertAll([$user1, $user2, ...]);    // Bulk insert (auto-chunked, auto-transaction)
 $repo->insertAll($entities, chunkSize: 50); // Custom chunk size (default: 100)
-$repo->save($user);                        // @deprecated — use upsert() instead (2 queries)
 $repo->upsert($user);                      // Insert or update in a single query (ON CONFLICT)
 
 // Read
