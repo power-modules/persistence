@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modular\Persistence;
 
+use Modular\Console\Contract\ProvidesConsoleCommands;
 use Modular\Framework\Config\Contract\HasConfig;
 use Modular\Framework\Config\Contract\HasConfigTrait;
 use Modular\Framework\Container\ConfigurableContainerInterface;
@@ -21,7 +22,7 @@ use Modular\Persistence\Database\PostgresDatabase;
 use Modular\Persistence\Schema\Adapter\PostgresSchemaQueryGenerator;
 use PDO;
 
-class PersistenceModule implements PowerModule, HasConfig, ExportsComponents
+class PersistenceModule implements PowerModule, HasConfig, ExportsComponents, ProvidesConsoleCommands
 {
     use HasConfigTrait;
 
@@ -37,6 +38,12 @@ class PersistenceModule implements PowerModule, HasConfig, ExportsComponents
             PostgresSchemaQueryGenerator::class,
             Database::class,
             PostgresDatabase::class,
+        ];
+    }
+
+    public function getConsoleCommands(): array
+    {
+        return [
             GenerateSchemaCommand::class,
             MakeSchemaCommand::class,
             MakeEntityCommand::class,

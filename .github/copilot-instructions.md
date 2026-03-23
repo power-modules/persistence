@@ -52,7 +52,7 @@ When running PHPUnit manually, always use `--display-all-issues` flag.
 
 - PHPUnit 12.5, attributes-based (`#[CoversClass(...)]`), `self::assert*` static style.
 - `tests/Unit/` mirrors `src/` structure; `tests/Integration/` for real PostgreSQL tests.
-- Namespace: `Modular\Persistence\Tests\` (PSR-4 → `tests/`).
+- Namespace: `Modular\Persistence\Test\` (PSR-4 → `tests/`).
 - Unit test fixtures in `tests/Unit/Fixture/` — reference `EmployeeSchema`, `Employee`, `EmployeeHydrator`, `EmployeeRepository` for pattern examples.
 - Integration test fixtures in `tests/Integration/Fixture/` — PostgreSQL-compatible schemas using VARCHAR/UUID primary keys (not autoincrement).
 - Integration tests extend `PostgresTestCase` (`tests/Integration/Support/`) for transaction-based isolation (BEGIN in setUp, ROLLBACK in tearDown).

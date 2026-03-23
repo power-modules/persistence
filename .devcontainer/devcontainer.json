@@ -1,6 +1,9 @@
 {
     "name": "Power Modules, Devcontainer",
     "image": "power-modules-devcontainer",
+    "runArgs": [
+        "--add-host=host.docker.internal:host-gateway"
+    ],
     "mounts": [
         "type=bind,source=${localEnv:HOME}/.ssh,target=/root/.ssh,readonly",
         "type=bind,source=${localEnv:HOME}/.ssh,target=${localEnv:HOME}/.ssh,readonly"
