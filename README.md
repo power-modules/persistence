@@ -566,7 +566,7 @@ make docker-down
 - **Integration tests** (`tests/Integration/`): Run against a real PostgreSQL 17 instance, testing the full stack from repository through PDO
 - **Test isolation**: Integration tests use transaction-based isolation (`BEGIN` in setUp / `ROLLBACK` in tearDown) for speed. Tests that exercise transactions or DDL manage their own cleanup.
 - **Fixtures**: Shared test entities, schemas, hydrators, and repositories live in `tests/Unit/Fixture/` (mocked DB) and `tests/Integration/Fixture/` (real DB). Integration support classes (`PostgresTestCase`, `ConnectionHelper`) live in `tests/Integration/Support/`.
-- **Namespace**: `Modular\Persistence\Tests\` (PSR-4 → `tests/`)
+- **Namespace**: `Modular\Persistence\Test\` (PSR-4 → `tests/`)
 
 ### CI
 
