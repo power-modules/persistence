@@ -18,6 +18,9 @@ class Config extends PowerModuleConfig
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false,
             ],
+        )->set(
+            Setting::SearchPath,
+            '',
         );
     }
 
@@ -39,6 +42,15 @@ class Config extends PowerModuleConfig
     public function getPassword(): string
     {
         return $this->get(Setting::Password);
+    }
+
+    public function getSearchPath(): string
+    {
+        if ($this->has(Setting::SearchPath) === false) {
+            return '';
+        }
+
+        return $this->get(Setting::SearchPath);
     }
 
     /**

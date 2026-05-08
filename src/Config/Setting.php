@@ -9,5 +9,6 @@ enum Setting
     case Dsn;
     case Username;
     case Password;
+    case SearchPath;
     case Options;
 }

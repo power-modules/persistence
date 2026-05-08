@@ -42,6 +42,7 @@ return Config::create()
     ->set(Setting::Dsn, $_ENV['DB_DSN'] ?? 'pgsql:host=localhost;port=5432;dbname=myapp')
     ->set(Setting::Username, $_ENV['DB_USERNAME'] ?? 'postgres')
     ->set(Setting::Password, $_ENV['DB_PASSWORD'] ?? 'secret')
+    ->set(Setting::SearchPath, $_ENV['DB_SCHEMA'] ?? 'public')
     ->set(Setting::Options, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -396,6 +397,8 @@ $insert->onConflictUpdate(
 ## 🏢 Multi-Tenancy
 
 Modular Persistence supports multi-tenancy via Postgres schemas (namespaces) using a **Decorator Pattern** on the database connection. This ensures `search_path` is correctly set for every query, allowing for clean SQL generation and correct Foreign Key resolution.
+
+For a static application-level schema, configure `Setting::SearchPath` in `config/modular_persistence.php`. For request-scoped tenant switching, use the decorator pattern below.
 
 ```php
 // 1. Setup Database with Decorator
