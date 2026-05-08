@@ -16,10 +16,15 @@ final readonly class DatabaseConnectionFactory
 
     public function make(): IDatabase
     {
+        return $this->makeDatabase();
+    }
+
+    public function makeDatabase(): Database
+    {
         $pdo = $this->makePdo();
 
         if ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql') {
-            return new PostgresDatabase($pdo);
+            return $this->createPostgresDatabase($pdo);
         }
 
         return new Database($pdo);
@@ -33,5 +38,22 @@ final readonly class DatabaseConnectionFactory
             $this->config->getPassword(),
             $this->config->getOptions(),
         );
+    }
+
+    public function makePostgresDatabase(): PostgresDatabase
+    {
+        return $this->createPostgresDatabase($this->makePdo());
+    }
+
+    private function createPostgresDatabase(PDO $pdo): PostgresDatabase
+    {
+        $database = new PostgresDatabase($pdo);
+        $searchPath = $this->config->getSearchPath();
+
+        if ($searchPath !== '') {
+            $database->setSearchPath($searchPath);
+        }
+
+        return $database;
     }
 }

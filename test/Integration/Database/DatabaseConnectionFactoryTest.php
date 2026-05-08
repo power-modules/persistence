@@ -21,11 +21,43 @@ final class DatabaseConnectionFactoryTest extends TestCase
 {
     public function testMakeReturnsPostgresDatabaseForPgsqlDsn(): void
     {
+        $factory = new DatabaseConnectionFactory(self::createConfig());
+
+        $db = $factory->make();
+
+        self::assertInstanceOf(PostgresDatabase::class, $db);
+    }
+
+    public function testMakeAppliesConfiguredSearchPathForPgsqlDsn(): void
+    {
+        $config = self::createConfig()
+            ->set(Setting::SearchPath, 'public');
+        $factory = new DatabaseConnectionFactory($config);
+
+        $db = $factory->make();
+
+        self::assertInstanceOf(PostgresDatabase::class, $db);
+        self::assertSame('public', $db->getSearchPath());
+    }
+
+    public function testMakePostgresDatabaseAppliesConfiguredSearchPath(): void
+    {
+        $config = self::createConfig()
+            ->set(Setting::SearchPath, 'public');
+        $factory = new DatabaseConnectionFactory($config);
+
+        $db = $factory->makePostgresDatabase();
+
+        self::assertSame('public', $db->getSearchPath());
+    }
+
+    private static function createConfig(): Config
+    {
         $dsn = getenv('DB_DSN') ?: 'pgsql:host=127.0.0.1;port=15432;dbname=persistence_test';
         $user = getenv('DB_USER') ?: 'persistence_test';
         $password = getenv('DB_PASSWORD') ?: 'persistence_test';
 
-        $config = Config::create()
+        return Config::create()
             ->set(Setting::Dsn, $dsn)
             ->set(Setting::Username, $user)
             ->set(Setting::Password, $password)
@@ -34,11 +66,5 @@ final class DatabaseConnectionFactoryTest extends TestCase
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false,
             ]);
-
-        $factory = new DatabaseConnectionFactory($config);
-
-        $db = $factory->make();
-
-        self::assertInstanceOf(PostgresDatabase::class, $db);
     }
 }

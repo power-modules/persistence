@@ -20,7 +20,6 @@ use Modular\Persistence\Database\Database;
 use Modular\Persistence\Database\DatabaseConnectionFactory;
 use Modular\Persistence\Database\PostgresDatabase;
 use Modular\Persistence\Schema\Adapter\PostgresSchemaQueryGenerator;
-use PDO;
 
 class PersistenceModule implements PowerModule, HasConfig, ExportsComponents, ProvidesConsoleCommands
 {
@@ -68,16 +67,16 @@ class PersistenceModule implements PowerModule, HasConfig, ExportsComponents, Pr
 
         $container->set(
             Database::class,
-            Database::class,
+            static fn (DatabaseConnectionFactory $factory): Database => $factory->makeDatabase(),
         )->addArguments([
-            static fn (DatabaseConnectionFactory $factory): PDO => $factory->makePdo(),
+            DatabaseConnectionFactory::class,
         ]);
 
         $container->set(
             PostgresDatabase::class,
-            PostgresDatabase::class,
+            static fn (DatabaseConnectionFactory $factory): PostgresDatabase => $factory->makePostgresDatabase(),
         )->addArguments([
-            static fn (DatabaseConnectionFactory $factory): PDO => $factory->makePdo(),
+            DatabaseConnectionFactory::class,
         ]);
 
         $container->set(
