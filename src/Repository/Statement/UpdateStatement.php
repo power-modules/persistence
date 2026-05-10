@@ -6,8 +6,8 @@ namespace Modular\Persistence\Repository\Statement;
 
 use Modular\Persistence\Repository\Condition;
 use Modular\Persistence\Repository\Statement\Contract\Bind;
-use Modular\Persistence\Repository\Statement\Contract\IUpdateStatement;
 use Modular\Persistence\Repository\Statement\Contract\ISqlDialect;
+use Modular\Persistence\Repository\Statement\Contract\IUpdateStatement;
 use Modular\Persistence\Repository\Statement\Dialect\PostgresDialect;
 
 class UpdateStatement implements IUpdateStatement
