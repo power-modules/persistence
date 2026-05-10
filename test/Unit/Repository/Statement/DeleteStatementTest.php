@@ -6,6 +6,7 @@ namespace Modular\Persistence\Test\Unit\Repository\Statement;
 
 use Modular\Persistence\Repository\Condition;
 use Modular\Persistence\Repository\Statement\DeleteStatement;
+use Modular\Persistence\Repository\Statement\Dialect\MysqlDialect;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
@@ -77,5 +78,14 @@ final class DeleteStatementTest extends TestCase
 
         self::assertStringContainsString('DELETE FROM "tenant_1"."sessions"', $sql);
         self::assertStringContainsString('WHERE (expired = :w_0_expired)', $sql);
+    }
+
+    public function testDeleteWithMysqlDialect(): void
+    {
+        $stmt = new DeleteStatement('sessions', 'tenant_1', new MysqlDialect());
+
+        $sql = $stmt->getQuery();
+
+        self::assertSame('DELETE FROM `tenant_1`.`sessions`', $sql);
     }
 }

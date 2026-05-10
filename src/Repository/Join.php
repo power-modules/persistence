@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Modular\Persistence\Repository;
 
+use Modular\Persistence\Repository\Statement\Contract\ISqlDialect;
+use Modular\Persistence\Repository\Statement\Dialect\PostgresDialect;
+
 class Join
 {
     public private(set) string $localKey {
@@ -32,43 +35,41 @@ class Join
      *
      * @param string $defaultLocalTable Fallback table name when localTable is null
      */
-    public function toSql(string $defaultLocalTable): string
+    public function toSql(string $defaultLocalTable, ?ISqlDialect $sqlDialect = null): string
     {
+        $sqlDialect ??= new PostgresDialect();
         $localTable = $this->localTable ?? $defaultLocalTable;
 
         // Build local key expression with optional safe type cast.
         // NULLIF prevents empty-string-to-type cast errors (e.g. ''::uuid).
         if ($this->localKeyType !== null) {
             $localKeyExpr = sprintf(
-                'NULLIF("%s"."%s", \'\')::%s',
-                $localTable,
-                $this->localKey,
+                'NULLIF(%s, \'\')::%s',
+                $sqlDialect->qualifyIdentifier($localTable, $this->localKey),
                 $this->localKeyType,
             );
         } else {
-            $localKeyExpr = sprintf('"%s"."%s"', $localTable, $this->localKey);
+            $localKeyExpr = $sqlDialect->qualifyIdentifier($localTable, $this->localKey);
         }
 
         $foreignTableRef = $this->alias ?? $this->table;
 
         if ($this->alias === null) {
             return sprintf(
-                '%s JOIN "%s" ON "%s"."%s" = %s',
+                '%s JOIN %s ON %s = %s',
                 $this->joinType->value,
-                $this->table,
-                $foreignTableRef,
-                $this->foreignKey,
+                $sqlDialect->quoteIdentifier($this->table),
+                $sqlDialect->qualifyIdentifier($foreignTableRef, $this->foreignKey),
                 $localKeyExpr,
             );
         }
 
         return sprintf(
-            '%s JOIN "%s" "%s" ON "%s"."%s" = %s',
+            '%s JOIN %s %s ON %s = %s',
             $this->joinType->value,
-            $this->table,
-            $this->alias,
-            $foreignTableRef,
-            $this->foreignKey,
+            $sqlDialect->quoteIdentifier($this->table),
+            $sqlDialect->quoteIdentifier($this->alias),
+            $sqlDialect->qualifyIdentifier($foreignTableRef, $this->foreignKey),
             $localKeyExpr,
         );
     }

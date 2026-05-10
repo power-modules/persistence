@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modular\Persistence\Test\Unit\Repository\Statement;
 
+use Modular\Persistence\Repository\Statement\Dialect\MysqlDialect;
 use Modular\Persistence\Repository\Statement\InsertStatement;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -66,5 +67,43 @@ final class InsertStatementTest extends TestCase
             'ON CONFLICT ("user_id", "role_id") DO UPDATE SET "assigned_at" = EXCLUDED."assigned_at"',
             $sql,
         );
+    }
+
+    public function testInsertWithMysqlDialect(): void
+    {
+        $statement = new InsertStatement('users', ['name', 'email'], 'tenant_1', new MysqlDialect());
+        $statement->prepareBinds(['name' => 'John', 'email' => 'john@example.com']);
+
+        $sql = $statement->getQuery();
+
+        self::assertStringStartsWith('INSERT INTO `tenant_1`.`users` (`name`, `email`) VALUES', $sql);
+        self::assertStringContainsString('(:i_0,:i_1)', $sql);
+    }
+
+    public function testIgnoreDuplicatesWithMysqlDialect(): void
+    {
+        $statement = new InsertStatement('users', ['name'], '', new MysqlDialect());
+        $statement->prepareBinds(['name' => 'John']);
+        $statement->ignoreDuplicates();
+
+        $sql = $statement->getQuery();
+
+        self::assertStringStartsWith('INSERT IGNORE INTO `users` (`name`) VALUES', $sql);
+        self::assertStringNotContainsString('ON CONFLICT', $sql);
+    }
+
+    public function testOnConflictUpdateWithMysqlDialect(): void
+    {
+        $statement = new InsertStatement('users', ['id', 'name', 'email'], '', new MysqlDialect());
+        $statement->prepareBinds(['id' => 1, 'name' => 'John', 'email' => 'john@example.com']);
+        $statement->onConflictUpdate(['id'], ['name', 'email']);
+
+        $sql = $statement->getQuery();
+
+        self::assertStringContainsString(
+            'ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `email` = VALUES(`email`)',
+            $sql,
+        );
+        self::assertStringNotContainsString('ON CONFLICT', $sql);
     }
 }

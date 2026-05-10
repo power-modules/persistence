@@ -7,11 +7,14 @@ namespace Modular\Persistence\Repository\Statement;
 use Modular\Persistence\Repository\Condition;
 use Modular\Persistence\Repository\Statement\Contract\Bind;
 use Modular\Persistence\Repository\Statement\Contract\IUpdateStatement;
+use Modular\Persistence\Repository\Statement\Contract\ISqlDialect;
+use Modular\Persistence\Repository\Statement\Dialect\PostgresDialect;
 
 class UpdateStatement implements IUpdateStatement
 {
     protected string $statement = '';
     protected ?WhereClause $whereClause = null;
+    protected ISqlDialect $sqlDialect;
 
     /**
      * @var array<Bind>
@@ -23,7 +26,9 @@ class UpdateStatement implements IUpdateStatement
     public function __construct(
         protected string $tableName,
         protected string $namespace = '',
+        ?ISqlDialect $sqlDialect = null,
     ) {
+        $this->sqlDialect = $sqlDialect ?? new PostgresDialect();
     }
 
     public function getQuery(): string
@@ -34,11 +39,7 @@ class UpdateStatement implements IUpdateStatement
             $update[] = sprintf('%s = %s', $bind->column, $bind->name);
         }
 
-        if ($this->namespace === '') {
-            $this->statement = sprintf('UPDATE "%s" SET %s', $this->tableName, implode(', ', $update));
-        } else {
-            $this->statement = sprintf('UPDATE "%s"."%s" SET %s', $this->namespace, $this->tableName, implode(', ', $update));
-        }
+        $this->statement = sprintf('UPDATE %s SET %s', $this->getQualifiedTableName(), implode(', ', $update));
 
         $this->setupWhere();
 
@@ -98,5 +99,10 @@ class UpdateStatement implements IUpdateStatement
         }
 
         return $this->whereClause;
+    }
+
+    protected function getQualifiedTableName(): string
+    {
+        return $this->sqlDialect->qualifyIdentifier($this->namespace, $this->tableName);
     }
 }

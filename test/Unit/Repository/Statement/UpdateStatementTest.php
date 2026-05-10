@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modular\Persistence\Test\Unit\Repository\Statement;
 
 use Modular\Persistence\Repository\Condition;
+use Modular\Persistence\Repository\Statement\Dialect\MysqlDialect;
 use Modular\Persistence\Repository\Statement\UpdateStatement;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -89,5 +90,16 @@ final class UpdateStatementTest extends TestCase
 
         self::assertStringContainsString('UPDATE "tenant_1"."users" SET', $sql);
         self::assertStringContainsString('WHERE (id = :w_0_id)', $sql);
+    }
+
+    public function testUpdateWithMysqlDialect(): void
+    {
+        $stmt = new UpdateStatement('users', 'tenant_1', new MysqlDialect());
+        $stmt->prepareBinds(['name' => 'John']);
+
+        $sql = $stmt->getQuery();
+
+        self::assertStringStartsWith('UPDATE `tenant_1`.`users` SET', $sql);
+        self::assertStringContainsString('name = :u_0', $sql);
     }
 }

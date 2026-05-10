@@ -8,8 +8,10 @@ use Modular\Persistence\Repository\Statement\Contract\IDeleteStatement;
 use Modular\Persistence\Repository\Statement\Contract\IInsertStatement;
 use Modular\Persistence\Repository\Statement\Contract\INamespaceProvider;
 use Modular\Persistence\Repository\Statement\Contract\ISelectStatement;
+use Modular\Persistence\Repository\Statement\Contract\ISqlDialect;
 use Modular\Persistence\Repository\Statement\Contract\IStatementFactory;
 use Modular\Persistence\Repository\Statement\Contract\IUpdateStatement;
+use Modular\Persistence\Repository\Statement\Dialect\PostgresDialect;
 use Modular\Persistence\Repository\Statement\DeleteStatement;
 use Modular\Persistence\Repository\Statement\InsertStatement;
 use Modular\Persistence\Repository\Statement\SelectStatement;
@@ -19,17 +21,18 @@ class GenericStatementFactory implements IStatementFactory
 {
     public function __construct(
         private string|INamespaceProvider $namespace = '',
+        private readonly ISqlDialect $sqlDialect = new PostgresDialect(),
     ) {
     }
 
     public function createSelectStatement(string $tableName): ISelectStatement
     {
-        return new SelectStatement($tableName, ['*'], $this->getNamespace());
+        return new SelectStatement($tableName, ['*'], $this->getNamespace(), $this->sqlDialect);
     }
 
     public function createUpdateStatement(string $tableName): IUpdateStatement
     {
-        return new UpdateStatement($tableName, $this->getNamespace());
+        return new UpdateStatement($tableName, $this->getNamespace(), $this->sqlDialect);
     }
 
     /**
@@ -37,12 +40,12 @@ class GenericStatementFactory implements IStatementFactory
      */
     public function createInsertStatement(string $tableName, array $columns): IInsertStatement
     {
-        return new InsertStatement($tableName, $columns, $this->getNamespace());
+        return new InsertStatement($tableName, $columns, $this->getNamespace(), $this->sqlDialect);
     }
 
     public function createDeleteStatement(string $tableName): IDeleteStatement
     {
-        return new DeleteStatement($tableName, $this->getNamespace());
+        return new DeleteStatement($tableName, $this->getNamespace(), $this->sqlDialect);
     }
 
     private function getNamespace(): string

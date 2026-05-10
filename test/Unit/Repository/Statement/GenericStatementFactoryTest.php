@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modular\Persistence\Test\Unit\Repository\Statement;
 
 use Modular\Persistence\Repository\Statement\DeleteStatement;
+use Modular\Persistence\Repository\Statement\Dialect\MysqlDialect;
 use Modular\Persistence\Repository\Statement\Factory\GenericStatementFactory;
 use Modular\Persistence\Repository\Statement\InsertStatement;
 use Modular\Persistence\Repository\Statement\Provider\RuntimeNamespaceProvider;
@@ -83,5 +84,30 @@ final class GenericStatementFactoryTest extends TestCase
         $update = $factory->createUpdateStatement('users');
         $update->prepareBinds(['name' => 'John']);
         self::assertStringContainsString('"tenant_2"."users"', $update->getQuery());
+    }
+
+    public function testCreateSelectStatementWithMysqlDialect(): void
+    {
+        $factory = new GenericStatementFactory('tenant_1', new MysqlDialect());
+
+        $select = $factory->createSelectStatement('users');
+
+        self::assertStringContainsString('SELECT * FROM `tenant_1`.`users`', $select->getQuery());
+    }
+
+    public function testCreateUpdateInsertDeleteStatementsWithMysqlDialect(): void
+    {
+        $factory = new GenericStatementFactory('tenant_1', new MysqlDialect());
+
+        $update = $factory->createUpdateStatement('users');
+        $update->prepareBinds(['name' => 'John']);
+        self::assertStringContainsString('UPDATE `tenant_1`.`users` SET', $update->getQuery());
+
+        $insert = $factory->createInsertStatement('users', ['name']);
+        $insert->prepareBinds(['name' => 'John']);
+        self::assertStringContainsString('INSERT INTO `tenant_1`.`users` (`name`) VALUES', $insert->getQuery());
+
+        $delete = $factory->createDeleteStatement('users');
+        self::assertStringContainsString('DELETE FROM `tenant_1`.`users`', $delete->getQuery());
     }
 }

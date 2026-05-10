@@ -10,10 +10,10 @@ use Modular\Persistence\Repository\Condition;
 use Modular\Persistence\Repository\Join;
 use Modular\Persistence\Repository\JoinType;
 use Modular\Persistence\Repository\Statement\Contract\Bind;
+use Modular\Persistence\Repository\Statement\Dialect\MysqlDialect;
 use Modular\Persistence\Repository\Statement\Factory\GenericStatementFactory;
 use Modular\Persistence\Schema\Contract\IHydrator;
 use Modular\Persistence\Test\Unit\Fixture\Employee;
-use Modular\Persistence\Test\Unit\Fixture\EmployeeHydrator;
 use PDOStatement;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -33,6 +33,7 @@ final class AbstractGenericRepositoryTest extends TestCase
         $pdoStatement = $this->createStub(PDOStatement::class);
         $pdoStatement->method('execute')->willReturn(true);
         $pdoStatement->method('fetchAll')->willReturn([]);
+        $hydrator = $this->createStub(IHydrator::class);
 
         $database = $this->createMock(IDatabase::class);
         $database->expects(self::once())
@@ -45,7 +46,7 @@ final class AbstractGenericRepositoryTest extends TestCase
             }))
             ->willReturn($pdoStatement);
 
-        $repository = new /** @extends AbstractGenericRepository<Employee> */ class ($database, new EmployeeHydrator()) extends AbstractGenericRepository {
+        $repository = new /** @extends AbstractGenericRepository<Employee> */ class ($database, $hydrator) extends AbstractGenericRepository {
             protected function getTableName(): string
             {
                 return 'employees';
@@ -63,7 +64,7 @@ final class AbstractGenericRepositoryTest extends TestCase
             }
         };
 
-        $repository->findByDepartment('Engineering');
+        call_user_func([$repository, 'findByDepartment'], 'Engineering');
     }
 
     public function testFindByWithRawConditionProducesCorrectSql(): void
@@ -71,6 +72,7 @@ final class AbstractGenericRepositoryTest extends TestCase
         $pdoStatement = $this->createStub(PDOStatement::class);
         $pdoStatement->method('execute')->willReturn(true);
         $pdoStatement->method('fetchAll')->willReturn([]);
+        $hydrator = $this->createStub(IHydrator::class);
 
         $database = $this->createMock(IDatabase::class);
         $database->expects(self::once())
@@ -83,7 +85,7 @@ final class AbstractGenericRepositoryTest extends TestCase
             }))
             ->willReturn($pdoStatement);
 
-        $repository = new /** @extends AbstractGenericRepository<Employee> */ class ($database, new EmployeeHydrator()) extends AbstractGenericRepository {
+        $repository = new /** @extends AbstractGenericRepository<Employee> */ class ($database, $hydrator) extends AbstractGenericRepository {
             protected function getTableName(): string
             {
                 return 'employees';
@@ -103,7 +105,7 @@ final class AbstractGenericRepositoryTest extends TestCase
             }
         };
 
-        $repository->findByMetadata('published', '{"lang":"en"}');
+        call_user_func([$repository, 'findByMetadata'], 'published', '{"lang":"en"}');
     }
 
     public function testCountWithRawConditionProducesCorrectSql(): void
@@ -111,6 +113,7 @@ final class AbstractGenericRepositoryTest extends TestCase
         $pdoStatement = $this->createStub(PDOStatement::class);
         $pdoStatement->method('execute')->willReturn(true);
         $pdoStatement->method('fetch')->willReturn(['total_rows' => 5]);
+        $hydrator = $this->createStub(IHydrator::class);
 
         $database = $this->createMock(IDatabase::class);
         $database->expects(self::once())
@@ -123,7 +126,7 @@ final class AbstractGenericRepositoryTest extends TestCase
             }))
             ->willReturn($pdoStatement);
 
-        $repository = new /** @extends AbstractGenericRepository<Employee> */ class ($database, new EmployeeHydrator()) extends AbstractGenericRepository {
+        $repository = new /** @extends AbstractGenericRepository<Employee> */ class ($database, $hydrator) extends AbstractGenericRepository {
             protected function getTableName(): string
             {
                 return 'employees';
@@ -140,8 +143,90 @@ final class AbstractGenericRepositoryTest extends TestCase
             }
         };
 
-        $count = $repository->countByMetadata('{"status":"active"}');
+        $count = call_user_func([$repository, 'countByMetadata'], '{"status":"active"}');
         self::assertSame(5, $count);
+    }
+
+    public function testFindWithMysqlSelectFactoryUsesBackticks(): void
+    {
+        $pdoStatement = $this->createStub(PDOStatement::class);
+        $pdoStatement->method('execute')->willReturn(true);
+        $pdoStatement->method('fetchAll')->willReturn([]);
+        $hydrator = $this->createStub(IHydrator::class);
+
+        $database = $this->createMock(IDatabase::class);
+        $database->expects(self::once())
+            ->method('prepare')
+            ->with(self::callback(function (string $sql): bool {
+                $sql = (string) preg_replace('/\s+/', ' ', $sql);
+
+                return str_contains($sql, 'SELECT * FROM `employees` INNER JOIN `departments` `d` ON `d`.`id` = `employees`.`dept_id`')
+                    && str_contains($sql, 'WHERE (d.name = :w_0_d_name)');
+            }))
+            ->willReturn($pdoStatement);
+
+        $repository = new /** @extends AbstractGenericRepository<Employee> */ class ($database, $hydrator, new GenericStatementFactory('', new MysqlDialect())) extends AbstractGenericRepository {
+            protected function getTableName(): string
+            {
+                return 'employees';
+            }
+
+            /** @return array<int, array<string, mixed>> */
+            public function findByDepartment(string $deptName): array
+            {
+                $stmt = $this->getSelectStatement();
+                $stmt->addJoin(new Join(JoinType::Inner, 'departments', 'dept_id', 'id', null, 'd'));
+                $stmt->addCondition(Condition::equals('d.name', $deptName));
+                $stmt->all();
+
+                return $this->select($stmt);
+            }
+        };
+
+        call_user_func([$repository, 'findByDepartment'], 'Engineering');
+    }
+
+    public function testUpsertWithMysqlFactoryUsesOnDuplicateKeyUpdate(): void
+    {
+        $statement = $this->createMock(PDOStatement::class);
+        $hydrator = $this->createMock(IHydrator::class);
+        $database = $this->createMock(IDatabase::class);
+
+        $entity = new \stdClass();
+
+        $hydrator->expects(self::once())
+            ->method('dehydrate')
+            ->with($entity)
+            ->willReturn([
+                'id' => 1,
+                'name' => 'John',
+                'email' => 'john@example.com',
+            ]);
+        $hydrator->method('getIdFieldName')->willReturn('id');
+
+        $database->expects(self::once())
+            ->method('prepare')
+            ->with(self::callback(function (string $sql): bool {
+                $sql = (string) preg_replace('/\s+/', ' ', $sql);
+
+                return str_contains($sql, 'INSERT INTO `employees` (`id`, `name`, `email`) VALUES (:i_0,:i_1,:i_2)')
+                    && str_contains($sql, 'ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `email` = VALUES(`email`)');
+            }))
+            ->willReturn($statement);
+
+        $statement->expects(self::exactly(3))
+            ->method('bindValue');
+        $statement->method('execute')->willReturn(true);
+        $statement->method('rowCount')->willReturn(1);
+
+        $repository = new /** @extends AbstractGenericRepository<\stdClass> */ class ($database, $hydrator, new GenericStatementFactory('', new MysqlDialect())) extends AbstractGenericRepository {
+            protected function getTableName(): string
+            {
+                return 'employees';
+            }
+        };
+
+        self::assertSame(1, $repository->upsert($entity));
     }
 
     // ── Null Binding Regression ──

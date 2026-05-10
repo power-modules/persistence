@@ -6,10 +6,12 @@ namespace Modular\Persistence\Repository\Statement;
 
 use Modular\Persistence\Repository\Statement\Contract\Bind;
 use Modular\Persistence\Repository\Statement\Contract\IInsertStatement;
+use Modular\Persistence\Repository\Statement\Contract\ISqlDialect;
+use Modular\Persistence\Repository\Statement\Dialect\PostgresDialect;
 
 class InsertStatement implements IInsertStatement
 {
-    private string $statement = '';
+    private ISqlDialect $sqlDialect;
 
     /**
      * @var array<Bind>
@@ -22,7 +24,24 @@ class InsertStatement implements IInsertStatement
     private array $placeholders = [];
 
     private int $idx = 0;
-    private string $onConflict = '';
+    private string $tableName;
+    private string $namespace;
+    private bool $ignoreDuplicates = false;
+
+    /**
+     * @var array<string>
+     */
+    private array $columns;
+
+    /**
+     * @var array<string>
+     */
+    private array $conflictColumns = [];
+
+    /**
+     * @var array<string>
+     */
+    private array $updateColumns = [];
 
     /**
      * @param array<string> $columns
@@ -31,17 +50,26 @@ class InsertStatement implements IInsertStatement
         string $tableName,
         array $columns,
         string $namespace = '',
+        ?ISqlDialect $sqlDialect = null,
     ) {
-        if ($namespace === '') {
-            $this->statement = sprintf('INSERT INTO "%s" ("%s") VALUES', $tableName, implode('", "', $columns));
-        } else {
-            $this->statement = sprintf('INSERT INTO "%s"."%s" ("%s") VALUES', $namespace, $tableName, implode('", "', $columns));
-        }
+        $this->tableName = $tableName;
+        $this->namespace = $namespace;
+        $this->columns = $columns;
+        $this->sqlDialect = $sqlDialect ?? new PostgresDialect();
     }
 
     public function getQuery(): string
     {
-        return sprintf('%s %s%s', $this->statement, implode(', ', $this->placeholders), $this->onConflict);
+        return sprintf(
+            '%s %s%s',
+            $this->getInsertPrefix(),
+            implode(', ', $this->placeholders),
+            $this->sqlDialect->buildInsertConflictClause(
+                $this->ignoreDuplicates,
+                $this->conflictColumns,
+                $this->updateColumns,
+            ),
+        );
     }
 
     /**
@@ -68,7 +96,9 @@ class InsertStatement implements IInsertStatement
 
     public function ignoreDuplicates(): static
     {
-        $this->onConflict = sprintf(' ON CONFLICT DO NOTHING');
+        $this->ignoreDuplicates = true;
+        $this->conflictColumns = [];
+        $this->updateColumns = [];
 
         return $this;
     }
@@ -79,17 +109,22 @@ class InsertStatement implements IInsertStatement
      */
     public function onConflictUpdate(array $conflictColumns, array $updateColumns): static
     {
-        $setClauses = array_map(
-            fn (string $col) => sprintf('"%s" = EXCLUDED."%s"', $col, $col),
-            $updateColumns,
-        );
-
-        $this->onConflict = sprintf(
-            ' ON CONFLICT ("%s") DO UPDATE SET %s',
-            implode('", "', $conflictColumns),
-            implode(', ', $setClauses),
-        );
+        $this->ignoreDuplicates = false;
+        $this->conflictColumns = $conflictColumns;
+        $this->updateColumns = $updateColumns;
 
         return $this;
+    }
+
+    private function getInsertPrefix(): string
+    {
+        $columns = implode(', ', array_map($this->sqlDialect->quoteIdentifier(...), $this->columns));
+
+        return sprintf(
+            '%s %s (%s) VALUES',
+            $this->sqlDialect->getInsertCommand($this->ignoreDuplicates),
+            $this->sqlDialect->qualifyIdentifier($this->namespace, $this->tableName),
+            $columns,
+        );
     }
 }

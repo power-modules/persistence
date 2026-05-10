@@ -7,25 +7,26 @@ namespace Modular\Persistence\Repository\Statement;
 use Modular\Persistence\Repository\Condition;
 use Modular\Persistence\Repository\Statement\Contract\Bind;
 use Modular\Persistence\Repository\Statement\Contract\IDeleteStatement;
+use Modular\Persistence\Repository\Statement\Contract\ISqlDialect;
+use Modular\Persistence\Repository\Statement\Dialect\PostgresDialect;
 
 class DeleteStatement implements IDeleteStatement
 {
     protected string $statement = '';
     protected ?WhereClause $whereClause = null;
+    protected ISqlDialect $sqlDialect;
 
     public function __construct(
         protected string $tableName,
         protected string $namespace = '',
+        ?ISqlDialect $sqlDialect = null,
     ) {
+        $this->sqlDialect = $sqlDialect ?? new PostgresDialect();
     }
 
     public function getQuery(): string
     {
-        if ($this->namespace === '') {
-            $this->statement = sprintf('DELETE FROM "%s"', $this->tableName);
-        } else {
-            $this->statement = sprintf('DELETE FROM "%s"."%s"', $this->namespace, $this->tableName);
-        }
+        $this->statement = sprintf('DELETE FROM %s', $this->getQualifiedTableName());
 
         $this->setupWhere();
 
@@ -71,5 +72,10 @@ class DeleteStatement implements IDeleteStatement
         }
 
         return $this->whereClause;
+    }
+
+    protected function getQualifiedTableName(): string
+    {
+        return $this->sqlDialect->qualifyIdentifier($this->namespace, $this->tableName);
     }
 }

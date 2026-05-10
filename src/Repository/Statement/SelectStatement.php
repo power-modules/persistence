@@ -8,11 +8,14 @@ use Modular\Persistence\Repository\Condition;
 use Modular\Persistence\Repository\Join;
 use Modular\Persistence\Repository\Statement\Contract\Bind;
 use Modular\Persistence\Repository\Statement\Contract\ISelectStatement;
+use Modular\Persistence\Repository\Statement\Contract\ISqlDialect;
+use Modular\Persistence\Repository\Statement\Dialect\PostgresDialect;
 
 class SelectStatement implements ISelectStatement
 {
     protected string $statement = '';
     protected ?WhereClause $whereClause = null;
+    protected ISqlDialect $sqlDialect;
 
     /**
      * @var array<Join>
@@ -40,7 +43,9 @@ class SelectStatement implements ISelectStatement
         protected string $tableName,
         protected array $columns = ['*'],
         protected string $namespace = '',
+        ?ISqlDialect $sqlDialect = null,
     ) {
+        $this->sqlDialect = $sqlDialect ?? new PostgresDialect();
     }
 
     public function addColumns(string ...$columns): self
@@ -70,18 +75,10 @@ class SelectStatement implements ISelectStatement
 
     public function count(): string
     {
-        if ($this->namespace === '') {
-            $this->statement = sprintf(
-                'SELECT COUNT(*) as total_rows FROM "%s"',
-                $this->tableName,
-            );
-        } else {
-            $this->statement = sprintf(
-                'SELECT COUNT(*) as total_rows FROM "%s"."%s"',
-                $this->namespace,
-                $this->tableName,
-            );
-        }
+        $this->statement = sprintf(
+            'SELECT COUNT(*) as total_rows FROM %s',
+            $this->getQualifiedTableName(),
+        );
 
         $this
             ->setupJoin()
@@ -130,20 +127,11 @@ class SelectStatement implements ISelectStatement
 
     public function getQuery(): string
     {
-        if ($this->namespace === '') {
-            $this->statement = sprintf(
-                'SELECT %s FROM "%s"',
-                implode(', ', $this->columns),
-                $this->tableName,
-            );
-        } else {
-            $this->statement = sprintf(
-                'SELECT %s FROM "%s"."%s"',
-                implode(', ', $this->columns),
-                $this->namespace,
-                $this->tableName,
-            );
-        }
+        $this->statement = sprintf(
+            'SELECT %s FROM %s',
+            implode(', ', $this->columns),
+            $this->getQualifiedTableName(),
+        );
 
         $this
             ->setupJoin()
@@ -194,7 +182,7 @@ class SelectStatement implements ISelectStatement
             $joins = [];
 
             foreach ($this->join as $join) {
-                $joins[] = $join->toSql($this->tableName);
+                $joins[] = $join->toSql($this->tableName, $this->sqlDialect);
             }
 
             $this->statement = sprintf('%s %s', $this->statement, implode(' ', $joins));
@@ -246,5 +234,10 @@ class SelectStatement implements ISelectStatement
         }
 
         return $this->whereClause;
+    }
+
+    protected function getQualifiedTableName(): string
+    {
+        return $this->sqlDialect->qualifyIdentifier($this->namespace, $this->tableName);
     }
 }

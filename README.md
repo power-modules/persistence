@@ -193,7 +193,7 @@ All repository methods:
 $repo->insert($user);                      // Insert a single entity
 $repo->insertAll([$user1, $user2, ...]);    // Bulk insert (auto-chunked, auto-transaction)
 $repo->insertAll($entities, chunkSize: 50); // Custom chunk size (default: 100)
-$repo->upsert($user);                      // Insert or update in a single query (ON CONFLICT)
+$repo->upsert($user);                      // Insert or update in a single query (ON CONFLICT by default)
 
 // Read
 $repo->find($id);                          // Find by primary key (or null)
@@ -376,6 +376,16 @@ $repo->upsert($user); // Defaulted to conflict on primary key, updates all non-k
 // Always returns 1 (whether inserted or updated)
 ```
 
+> **Note:** Persistence is still PostgreSQL-focused by default. If you need MySQL-compatible SQL generation for repository statements, inject `MysqlDialect` into `GenericStatementFactory`. That changes generated SQL such as identifier quoting, `ignoreDuplicates()` (`INSERT IGNORE`), and `onConflictUpdate()` (`ON DUPLICATE KEY UPDATE`), but it does not change the module's broader PostgreSQL-oriented features such as `search_path`, JSONB helpers, or other Postgres-specific behavior.
+
+```php
+use Modular\Persistence\Repository\Statement\Dialect\MysqlDialect;
+use Modular\Persistence\Repository\Statement\Factory\GenericStatementFactory;
+
+$factory = new GenericStatementFactory('', new MysqlDialect());
+$repo = new UserRepository($db, $hydrator, $factory);
+```
+
 For more control, use the statement factory directly:
 
 ```php
@@ -392,6 +402,13 @@ $insert->onConflictUpdate(
     updateColumns: ['name'],
 );
 // Generates: INSERT INTO "users" ... ON CONFLICT ("email") DO UPDATE SET "name" = EXCLUDED."name"
+```
+
+With `MysqlDialect`, those same APIs generate MySQL forms instead:
+
+```php
+// ignoreDuplicates() => INSERT IGNORE INTO `users` ...
+// onConflictUpdate() => INSERT INTO `users` ... ON DUPLICATE KEY UPDATE `name` = VALUES(`name`)
 ```
 
 ## 🏢 Multi-Tenancy

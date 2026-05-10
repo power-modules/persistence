@@ -7,6 +7,7 @@ namespace Modular\Persistence\Test\Unit\Repository\Statement;
 use Modular\Persistence\Repository\Condition;
 use Modular\Persistence\Repository\Join;
 use Modular\Persistence\Repository\JoinType;
+use Modular\Persistence\Repository\Statement\Dialect\MysqlDialect;
 use Modular\Persistence\Repository\Statement\SelectStatement;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -186,5 +187,32 @@ final class SelectStatementTest extends TestCase
 
         self::assertCount(1, $binds);
         self::assertSame('John', $binds[0]->value);
+    }
+
+    public function testMysqlDialectUsesBackticksForBasicQuery(): void
+    {
+        $stmt = new SelectStatement('employees', ['name'], 'company', new MysqlDialect());
+        $stmt->addOrder('name', 'ASC');
+        $stmt->setLimit(10);
+
+        $sql = $stmt->getQuery();
+
+        self::assertSame(
+            'SELECT name FROM `company`.`employees` ORDER BY name ASC LIMIT 10 OFFSET 0',
+            $sql,
+        );
+    }
+
+    public function testMysqlDialectUsesBackticksForJoinIdentifiers(): void
+    {
+        $stmt = new SelectStatement('employees', ['*'], '', new MysqlDialect());
+        $stmt->addJoin(new Join(JoinType::Inner, 'departments', 'dept_id', 'id', alias: 'd'));
+
+        $sql = $stmt->getQuery();
+
+        self::assertStringContainsString(
+            'INNER JOIN `departments` `d` ON `d`.`id` = `employees`.`dept_id`',
+            $sql,
+        );
     }
 }

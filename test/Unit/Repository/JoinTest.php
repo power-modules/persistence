@@ -6,6 +6,7 @@ namespace Modular\Persistence\Test\Unit\Repository;
 
 use Modular\Persistence\Repository\Join;
 use Modular\Persistence\Repository\JoinType;
+use Modular\Persistence\Repository\Statement\Dialect\MysqlDialect;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 
@@ -109,6 +110,16 @@ final class JoinTest extends TestCase
         self::assertSame(
             'LEFT JOIN "departments" "d" ON "d"."id" = NULLIF("contracts"."dept_uuid", \'\')::uuid',
             $join->toSql('employees'),
+        );
+    }
+
+    public function testBasicInnerJoinWithMysqlDialect(): void
+    {
+        $join = new Join(JoinType::Inner, 'departments', 'dept_id', 'id', alias: 'd');
+
+        self::assertSame(
+            'INNER JOIN `departments` `d` ON `d`.`id` = `employees`.`dept_id`',
+            $join->toSql('employees', new MysqlDialect()),
         );
     }
 }
