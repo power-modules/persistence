@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Modular\Persistence\Test\Integration\Schema;
 
-use Modular\Persistence\Exception\QueryException;
 use Modular\Persistence\Schema\Adapter\PostgresSchemaQueryGenerator;
 use Modular\Persistence\Test\Integration\Fixture\EmployeeSchema;
 use Modular\Persistence\Test\Integration\Fixture\ProductSchema;
@@ -186,18 +185,63 @@ final class SchemaGenerationTest extends TestCase
             static::connect()->exec($query);
         }
 
-        // ALTER ADD COLUMN should fail because the column already exists
-        // but the SQL syntax should be valid PostgreSQL
+        // ALTER ADD COLUMN with IF NOT EXISTS should run and not fail even if the column already exists
         $alterSql = $generator->generateAlterAddColumn(EmployeeSchema::Name);
 
-        try {
-            static::connect()->exec($alterSql);
-            self::fail('Expected duplicate column error');
-        } catch (QueryException $e) {
-            self::assertStringContainsString('already exists', $e->getMessage());
-        }
+        static::connect()->exec($alterSql);
+
+        $columns = $this->getColumnNames(EmployeeSchema::getTableName());
+        self::assertContains('name', $columns);
 
         $this->dropTable(EmployeeSchema::getTableName());
+    }
+
+    public function testGenerateSchemaIsIdempotent(): void
+    {
+        $this->dropTable(EmployeeSchema::getTableName());
+
+        $generator = new PostgresSchemaQueryGenerator();
+
+        // First run
+        foreach ($generator->generate(EmployeeSchema::Id) as $query) {
+            static::connect()->exec($query);
+        }
+
+        self::assertTrue($this->tableExists(EmployeeSchema::getTableName()));
+
+        // Second run
+        foreach ($generator->generate(EmployeeSchema::Id) as $query) {
+            static::connect()->exec($query);
+        }
+
+        self::assertTrue($this->tableExists(EmployeeSchema::getTableName()));
+
+        $this->dropTable(EmployeeSchema::getTableName());
+    }
+
+    public function testGenerateProductSchemaWithIndexIsIdempotent(): void
+    {
+        $this->dropTable(ProductSchema::getTableName());
+
+        $generator = new PostgresSchemaQueryGenerator();
+
+        // First run
+        foreach ($generator->generate(ProductSchema::Id) as $query) {
+            static::connect()->exec($query);
+        }
+
+        self::assertTrue($this->tableExists(ProductSchema::getTableName()));
+        self::assertTrue($this->indexExists('idx_test_product_metadata_gin'));
+
+        // Second run
+        foreach ($generator->generate(ProductSchema::Id) as $query) {
+            static::connect()->exec($query);
+        }
+
+        self::assertTrue($this->tableExists(ProductSchema::getTableName()));
+        self::assertTrue($this->indexExists('idx_test_product_metadata_gin'));
+
+        $this->dropTable(ProductSchema::getTableName());
     }
 
     public static function tearDownAfterClass(): void

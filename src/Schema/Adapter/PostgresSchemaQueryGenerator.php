@@ -32,7 +32,7 @@ final readonly class PostgresSchemaQueryGenerator implements ISchemaQueryGenerat
                     : sprintf('"%s"', implode('", "', $tableIndex->columns));
 
                 $indexQuery = sprintf(
-                    'CREATE%sINDEX "%s" ON "%s"%s(%s);',
+                    'CREATE%sINDEX IF NOT EXISTS "%s" ON "%s"%s(%s);',
                     $unique,
                     $tableIndex->name ?? $tableIndex->makeName($tableName),
                     $tableName,
@@ -50,7 +50,7 @@ final readonly class PostgresSchemaQueryGenerator implements ISchemaQueryGenerat
         $columnDefinitionQuery = $this->getColumnDefinitionQuery($column->getColumnDefinition());
 
         return sprintf(
-            'ALTER TABLE "%s" ADD COLUMN %s',
+            'ALTER TABLE "%s" ADD COLUMN IF NOT EXISTS %s',
             $column->getTableName(),
             $columnDefinitionQuery,
         );
@@ -93,7 +93,7 @@ final readonly class PostgresSchemaQueryGenerator implements ISchemaQueryGenerat
         }
 
         $createTableQuery = sprintf(
-            'CREATE TABLE "%s" (%s%s',
+            'CREATE TABLE IF NOT EXISTS "%s" (%s%s',
             $tableName,
             implode(', ', $this->getColumnsDefinition($schema)),
             $primaryKeyClause,

@@ -68,7 +68,7 @@ final class PostgresSchemaQueryGeneratorTest extends TestCase
         self::assertCount(1, $queries);
         self::assertStringNotContainsString('PRIMARY KEY', $queries[0]);
         self::assertSame(
-            'CREATE TABLE "no_pk_table" ("name" VARCHAR(255) NULL DEFAULT NULL, "value" INTEGER NULL DEFAULT NULL);',
+            'CREATE TABLE IF NOT EXISTS "no_pk_table" ("name" VARCHAR(255) NULL DEFAULT NULL, "value" INTEGER NULL DEFAULT NULL);',
             $queries[0],
         );
     }
