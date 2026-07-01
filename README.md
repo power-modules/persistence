@@ -496,7 +496,7 @@ enum OrderSchema: string implements ISchema, IHasForeignKeys
 
 ### SQL Generation
 
-The `PostgresSchemaQueryGenerator` generates DDL from schema enums, including `CREATE TABLE`, `ALTER TABLE ADD COLUMN`, `ALTER TABLE RENAME COLUMN`, and index creation. Use the CLI command or the generator directly:
+The `PostgresSchemaQueryGenerator` generates idempotent DDL from schema enums, including `CREATE TABLE IF NOT EXISTS`, `ALTER TABLE ADD COLUMN IF NOT EXISTS`, `ALTER TABLE RENAME COLUMN`, and index creation with `IF NOT EXISTS`. Use the CLI command or the generator directly:
 
 ```bash
 php bin/console persistence:generate-schema App\\Schema\\UserSchema
