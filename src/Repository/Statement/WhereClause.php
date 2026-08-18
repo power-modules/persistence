@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace Modular\Persistence\Repository\Statement;
 
 use Modular\Persistence\Repository\Condition;
-use Modular\Persistence\Repository\Operator;
+use Modular\Persistence\Repository\ConditionGroup;
 use Modular\Persistence\Repository\Statement\Contract\Bind;
+use Modular\Persistence\Repository\Statement\Contract\IConditionRenderer;
 
 class WhereClause
 {
@@ -16,16 +17,21 @@ class WhereClause
     private array $conditions = [];
 
     /**
-     * @var array<Bind>
+     * @var array<ConditionGroup>
      */
-    private array $binds = [];
+    private array $groups = [];
 
     /**
      * @var array<array{sql: string, binds: array<Bind>}>
      */
     private array $rawConditions = [];
 
-    private int $paramIndex = 0;
+    private readonly IConditionRenderer $renderer;
+
+    public function __construct(?IConditionRenderer $renderer = null)
+    {
+        $this->renderer = $renderer ?? new ConditionRenderer();
+    }
 
     public function add(Condition ...$conditions): self
     {
@@ -35,9 +41,18 @@ class WhereClause
 
         $this->conditions[] = array_values($conditions);
 
-        foreach ($conditions as $condition) {
-            $this->processBind($condition);
-        }
+        return $this;
+    }
+
+    /**
+     * Add a parenthesized, possibly nested boolean group of conditions.
+     *
+     * The group is AND-joined with the rest of the WHERE clause. Use nested
+     * groups to express boolean trees such as `(a AND b) OR (c)`.
+     */
+    public function addGroup(ConditionGroup $group): self
+    {
+        $this->groups[] = $group;
 
         return $this;
     }
@@ -59,34 +74,7 @@ class WhereClause
 
     public function toSql(): string
     {
-        if (count($this->conditions) === 0 && count($this->rawConditions) === 0) {
-            return '';
-        }
-
-        $groups = [];
-        $bindIndex = 0;
-
-        foreach ($this->conditions as $group) {
-            $groupSql = [];
-
-            foreach ($group as $condition) {
-                $sql = $this->buildConditionSql($condition, $bindIndex);
-
-                if (count($groupSql) > 0) {
-                    $sql = sprintf('%s %s', $condition->xor->value, $sql);
-                }
-
-                $groupSql[] = $sql;
-            }
-
-            $groups[] = implode(' ', $groupSql);
-        }
-
-        foreach ($this->rawConditions as $raw) {
-            $groups[] = $raw['sql'];
-        }
-
-        return sprintf(' WHERE (%s)', implode(') AND (', $groups));
+        return $this->build()['sql'];
     }
 
     /**
@@ -94,88 +82,60 @@ class WhereClause
      */
     public function getBinds(): array
     {
-        $rawBinds = [];
+        return $this->build()['binds'];
+    }
+
+    /**
+     * Render the clause once, producing both the SQL string and its binds so the
+     * two can never drift apart.
+     *
+     * @return array{sql: string, binds: array<Bind>}
+     */
+    private function build(): array
+    {
+        $bindCollector = new BindCollector();
+        $clauses = [];
+
+        foreach ($this->conditions as $group) {
+            $parts = [];
+
+            foreach ($group as $position => $condition) {
+                $rendered = $this->renderer->render($condition, null, $bindCollector);
+
+                if ($position > 0) {
+                    $rendered = sprintf('%s %s', $condition->xor->value, $rendered);
+                }
+
+                $parts[] = $rendered;
+            }
+
+            $clauses[] = implode(' ', $parts);
+        }
+
+        foreach ($this->groups as $group) {
+            $rendered = $this->renderer->render($group, null, $bindCollector);
+
+            if ($rendered === '') {
+                continue;
+            }
+
+            $clauses[] = $rendered;
+        }
+
+        $binds = $bindCollector->getBinds();
+
         foreach ($this->rawConditions as $raw) {
-            $rawBinds = array_merge($rawBinds, $raw['binds']);
+            $clauses[] = $raw['sql'];
+            $binds = array_merge($binds, $raw['binds']);
         }
 
-        return array_merge($this->binds, $rawBinds);
-    }
-
-    private function processBind(Condition $condition): void
-    {
-        if (in_array($condition->operator, [Operator::IsNull, Operator::NotNull, Operator::Exists], true)) {
-            return;
+        if (count($clauses) === 0) {
+            return ['sql' => '', 'binds' => []];
         }
 
-        if (in_array($condition->operator, [Operator::In, Operator::NotIn], true)) {
-            foreach ($condition->value as $val) {
-                $this->binds[] = $this->createBind($condition->column, $val);
-            }
-
-            return;
-        }
-
-        if (in_array($condition->operator, [Operator::JsonHasAnyKey, Operator::JsonHasAllKeys], true)) {
-            /** @var array<string> $keys */
-            $keys = $condition->value;
-            $pgArray = '{' . implode(',', $keys) . '}';
-            $this->binds[] = $this->createBind($condition->column, $pgArray);
-
-            return;
-        }
-
-        $value = $condition->value;
-        if (in_array($condition->operator, [Operator::Like, Operator::NotLike, Operator::Ilike, Operator::NotIlike], true)) {
-            $value = '%' . $value . '%';
-        }
-
-        $this->binds[] = $this->createBind($condition->column, $value);
-    }
-
-    private function buildConditionSql(Condition $condition, int &$bindIndex): string
-    {
-        if ($condition->operator === Operator::Exists) {
-            return sprintf('EXISTS (%s)', $condition->value);
-        }
-
-        if (in_array($condition->operator, [Operator::IsNull, Operator::NotNull], true)) {
-            return sprintf('%s %s', $condition->column, $condition->operator->value);
-        }
-
-        if (in_array($condition->operator, [Operator::In, Operator::NotIn], true)) {
-            $placeholders = [];
-            foreach ($condition->value as $ignored) {
-                $placeholders[] = $this->binds[$bindIndex++]->name;
-            }
-
-            return sprintf('%s %s (%s)', $condition->column, $condition->operator->value, implode(',', $placeholders));
-        }
-
-        if (in_array($condition->operator, [Operator::JsonContains, Operator::JsonContainedBy], true)) {
-            return sprintf('%s %s %s::jsonb', $condition->column, $condition->operator->value, $this->binds[$bindIndex++]->name);
-        }
-
-        if ($condition->operator === Operator::JsonHasKey) {
-            return sprintf('jsonb_exists(%s, %s)', $condition->column, $this->binds[$bindIndex++]->name);
-        }
-
-        if ($condition->operator === Operator::JsonHasAnyKey) {
-            return sprintf('jsonb_exists_any(%s, %s::text[])', $condition->column, $this->binds[$bindIndex++]->name);
-        }
-
-        if ($condition->operator === Operator::JsonHasAllKeys) {
-            return sprintf('jsonb_exists_all(%s, %s::text[])', $condition->column, $this->binds[$bindIndex++]->name);
-        }
-
-        return sprintf('%s %s %s', $condition->column, $condition->operator->value, $this->binds[$bindIndex++]->name);
-    }
-
-    private function createBind(string $column, mixed $value): Bind
-    {
-        $cleanColumn = preg_replace('/[^a-zA-Z0-9_]/', '_', $column) ?? 'param';
-        $name = sprintf(':w_%d_%s', $this->paramIndex++, $cleanColumn);
-
-        return Bind::create($column, $name, $value);
+        return [
+            'sql' => sprintf(' WHERE (%s)', implode(') AND (', $clauses)),
+            'binds' => $binds,
+        ];
     }
 }

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Modular\Persistence\Repository;
 
+use Modular\Persistence\Repository\Statement\ConditionRenderer;
+use Modular\Persistence\Repository\Statement\Contract\IConditionRenderer;
 use Modular\Persistence\Repository\Statement\Contract\ISqlDialect;
 use Modular\Persistence\Repository\Statement\Dialect\PostgresDialect;
 
@@ -17,6 +19,14 @@ class Join
         set(\BackedEnum|string $value) => $value instanceof \BackedEnum ? (string) $value->value : $value;
     }
 
+    /**
+     * @var array<Condition|ConditionGroup|string>
+     */
+    public readonly array $conditions;
+
+    /**
+     * @param Condition|ConditionGroup|array<Condition|ConditionGroup|string>|string|null $conditions
+     */
     public function __construct(
         public readonly JoinType $joinType,
         public readonly string $table,
@@ -25,9 +35,19 @@ class Join
         public readonly ?string $localTable = null,
         public readonly ?string $alias = null,
         public readonly ?string $localKeyType = null,
+        Condition|ConditionGroup|array|string|null $conditions = null,
+        private readonly ?IConditionRenderer $conditionRenderer = null,
     ) {
         $this->localKey = $localKey;
         $this->foreignKey = $foreignKey;
+
+        if ($conditions instanceof Condition || $conditions instanceof ConditionGroup || is_string($conditions)) {
+            $this->conditions = [$conditions];
+        } elseif (is_array($conditions)) {
+            $this->conditions = $conditions;
+        } else {
+            $this->conditions = [];
+        }
     }
 
     /**
@@ -55,22 +75,55 @@ class Join
         $foreignTableRef = $this->alias ?? $this->table;
 
         if ($this->alias === null) {
-            return sprintf(
+            $sql = sprintf(
                 '%s JOIN %s ON %s = %s',
                 $this->joinType->value,
                 $sqlDialect->quoteIdentifier($this->table),
                 $sqlDialect->qualifyIdentifier($foreignTableRef, $this->foreignKey),
                 $localKeyExpr,
             );
+        } else {
+            $sql = sprintf(
+                '%s JOIN %s %s ON %s = %s',
+                $this->joinType->value,
+                $sqlDialect->quoteIdentifier($this->table),
+                $sqlDialect->quoteIdentifier($this->alias),
+                $sqlDialect->qualifyIdentifier($foreignTableRef, $this->foreignKey),
+                $localKeyExpr,
+            );
         }
 
-        return sprintf(
-            '%s JOIN %s %s ON %s = %s',
-            $this->joinType->value,
-            $sqlDialect->quoteIdentifier($this->table),
-            $sqlDialect->quoteIdentifier($this->alias),
-            $sqlDialect->qualifyIdentifier($foreignTableRef, $this->foreignKey),
-            $localKeyExpr,
-        );
+        if ($this->conditions !== []) {
+            $renderer = $this->conditionRenderer ?? new ConditionRenderer();
+            $columnResolver = static function (string $column) use ($foreignTableRef, $sqlDialect): string {
+                $trimmed = trim($column);
+                if (str_contains($trimmed, '"') || str_contains($trimmed, '.')) {
+                    return $trimmed;
+                }
+
+                return $sqlDialect->qualifyIdentifier($foreignTableRef, $trimmed);
+            };
+
+            $renderedConditions = [];
+            foreach ($this->conditions as $cond) {
+                if (is_string($cond)) {
+                    $trimmed = trim($cond);
+                    if ($trimmed !== '') {
+                        $renderedConditions[] = $trimmed;
+                    }
+                } else {
+                    $rendered = $renderer->render($cond, $columnResolver);
+                    if ($rendered !== '') {
+                        $renderedConditions[] = $rendered;
+                    }
+                }
+            }
+
+            if ($renderedConditions !== []) {
+                $sql .= ' AND ' . implode(' AND ', $renderedConditions);
+            }
+        }
+
+        return $sql;
     }
 }

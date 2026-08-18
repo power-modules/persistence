@@ -28,6 +28,8 @@ final class ColumnTypeTest extends TestCase
                 ColumnType::Uuid => 'UUID',
                 ColumnType::Jsonb => 'JSONB',
                 ColumnType::Varchar => 'VARCHAR',
+                ColumnType::Boolean => 'BOOLEAN',
+                ColumnType::DoublePrecision => 'DOUBLE PRECISION',
             };
 
             self::assertSame($expected, $columnType->getDbType());

@@ -134,6 +134,8 @@ final readonly class PostgresSchemaQueryGenerator implements ISchemaQueryGenerat
         $query = sprintf('"%s" %s', $columnDefinition->name, $columnDefinition->columnType->getDbType());
 
         $query = match ($columnDefinition->columnType) {
+            ColumnType::Boolean => sprintf('%s', $query),
+            ColumnType::DoublePrecision => sprintf('%s', $query),
             ColumnType::Bigint => sprintf('%s', $query),
             ColumnType::Date => sprintf('%s', $query),
             ColumnType::Decimal => sprintf('%s(%d, %d)', $query, $columnDefinition->precision, $columnDefinition->scale),

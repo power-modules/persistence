@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modular\Persistence\Repository\Statement\Contract;
 
 use Modular\Persistence\Repository\Condition;
+use Modular\Persistence\Repository\ConditionGroup;
 use Modular\Persistence\Repository\Join;
 
 interface ISelectStatement
@@ -16,6 +17,11 @@ interface ISelectStatement
     public function addJoin(Join ...$joins): static;
     public function unshiftJoin(Join ...$joins): static;
     public function addCondition(Condition ...$conditions): static;
+
+    /**
+     * Add a parenthesized, possibly nested boolean group of conditions.
+     */
+    public function addConditionGroup(ConditionGroup $group): static;
 
     /**
      * Add a raw SQL condition with optional bind values.

@@ -47,7 +47,7 @@ class PostgresDatabase extends Database implements IPostgresDatabase
             return;
         }
 
-        $this->exec(sprintf('SET search_path TO %s', $sanitized));
+        $this->exec(sprintf('SET search_path TO %s, public', $sanitized));
         $this->currentNamespace = $sanitized;
     }
 

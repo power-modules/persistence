@@ -6,6 +6,7 @@ namespace Modular\Persistence\Repository;
 
 use BackedEnum;
 use InvalidArgumentException;
+use Modular\Persistence\Repository\Statement\Contract\ISelectStatement;
 
 final class Condition
 {
@@ -102,9 +103,14 @@ final class Condition
         return new self($column, Operator::NotIlike, $value);
     }
 
-    public static function exists(string $subquery): self
+    public static function exists(ISelectStatement|string $subquery): self
     {
         return new self('', Operator::Exists, $subquery);
+    }
+
+    public static function notExists(ISelectStatement|string $subquery): self
+    {
+        return new self('', Operator::NotExists, $subquery);
     }
 
     /**

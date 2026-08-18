@@ -60,7 +60,7 @@ final class MultiTenancyTest extends TestCase
         $db = static::connect();
         $db->useNamespace('tenant_a');
 
-        self::assertSame('tenant_a', $db->getSearchPath());
+        self::assertSame('tenant_a, public', $db->getSearchPath());
     }
 
     public function testSetSearchPathSinglePath(): void
@@ -111,15 +111,15 @@ final class MultiTenancyTest extends TestCase
         $db = static::connect();
 
         $db->useNamespace('tenant_a');
-        self::assertSame('tenant_a', $db->getSearchPath());
+        self::assertSame('tenant_a, public', $db->getSearchPath());
 
         // Second call with same namespace should be a no-op (cached)
         $db->useNamespace('tenant_a');
-        self::assertSame('tenant_a', $db->getSearchPath());
+        self::assertSame('tenant_a, public', $db->getSearchPath());
 
         // Changing to different namespace should work
         $db->useNamespace('tenant_b');
-        self::assertSame('tenant_b', $db->getSearchPath());
+        self::assertSame('tenant_b, public', $db->getSearchPath());
     }
 
     public function testRollbackInvalidatesNamespaceCache(): void
@@ -127,17 +127,17 @@ final class MultiTenancyTest extends TestCase
         $db = static::connect();
 
         $db->useNamespace('tenant_a');
-        self::assertSame('tenant_a', $db->getSearchPath());
+        self::assertSame('tenant_a, public', $db->getSearchPath());
 
         $db->beginTransaction();
         $db->useNamespace('tenant_b');
-        self::assertSame('tenant_b', $db->getSearchPath());
+        self::assertSame('tenant_b, public', $db->getSearchPath());
 
         $db->rollBack();
 
         // After rollback, cache was cleared — useNamespace re-issues SET search_path
         $db->useNamespace('tenant_a');
-        self::assertSame('tenant_a', $db->getSearchPath());
+        self::assertSame('tenant_a, public', $db->getSearchPath());
     }
 
     public function testNamespaceAwareDecoratorAutoSetsNamespace(): void

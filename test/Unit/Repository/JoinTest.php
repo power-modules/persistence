@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Modular\Persistence\Test\Unit\Repository;
 
+use Modular\Persistence\Repository\Condition;
+use Modular\Persistence\Repository\ConditionGroup;
+use Modular\Persistence\Repository\Expression;
 use Modular\Persistence\Repository\Join;
 use Modular\Persistence\Repository\JoinType;
 use Modular\Persistence\Repository\Statement\Dialect\MysqlDialect;
@@ -120,6 +123,60 @@ final class JoinTest extends TestCase
         self::assertSame(
             'INNER JOIN `departments` `d` ON `d`.`id` = `employees`.`dept_id`',
             $join->toSql('employees', new MysqlDialect()),
+        );
+    }
+
+    public function testJoinWithConditionAutoQualifiesColumn(): void
+    {
+        $join = new Join(
+            JoinType::Left,
+            'entity_dimension_values',
+            'id',
+            'entity_id',
+            alias: 'attr_0',
+            conditions: Condition::equals('attribute_id', 'attr-uuid-123'),
+        );
+
+        self::assertSame(
+            'LEFT JOIN "entity_dimension_values" "attr_0" ON "attr_0"."entity_id" = "entities"."id" AND "attr_0"."attribute_id" = \'attr-uuid-123\'',
+            $join->toSql('entities'),
+        );
+    }
+
+    public function testJoinWithConditionGroup(): void
+    {
+        $join = new Join(
+            JoinType::Left,
+            'entity_dimension_values',
+            'id',
+            'entity_id',
+            alias: 'attr_0',
+            conditions: ConditionGroup::all(
+                Condition::equals('attribute_id', 'attr-uuid-123'),
+                Condition::notNull('num_value'),
+            ),
+        );
+
+        self::assertSame(
+            'LEFT JOIN "entity_dimension_values" "attr_0" ON "attr_0"."entity_id" = "entities"."id" AND "attr_0"."attribute_id" = \'attr-uuid-123\' AND "attr_0"."num_value" IS NOT NULL',
+            $join->toSql('entities'),
+        );
+    }
+
+    public function testJoinWithExpressionCondition(): void
+    {
+        $join = new Join(
+            JoinType::Left,
+            'orders',
+            'user_id',
+            'customer_id',
+            alias: 'o',
+            conditions: Condition::equals('tenant_id', new Expression('"users"."tenant_id"')),
+        );
+
+        self::assertSame(
+            'LEFT JOIN "orders" "o" ON "o"."customer_id" = "users"."user_id" AND "o"."tenant_id" = "users"."tenant_id"',
+            $join->toSql('users'),
         );
     }
 }

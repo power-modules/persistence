@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modular\Persistence\Repository\Statement;
 
 use Modular\Persistence\Repository\Condition;
+use Modular\Persistence\Repository\ConditionGroup;
 use Modular\Persistence\Repository\Join;
 use Modular\Persistence\Repository\Statement\Contract\Bind;
 use Modular\Persistence\Repository\Statement\Contract\ISelectStatement;
@@ -154,6 +155,19 @@ class SelectStatement implements ISelectStatement
     public function addCondition(Condition ...$conditions): static
     {
         $this->getWhereClause()->add(...$conditions);
+
+        return $this;
+    }
+
+    /**
+     * Add a parenthesized, possibly nested boolean group of conditions.
+     *
+     * The group is AND-joined with the rest of the WHERE clause, which lets you
+     * express boolean trees such as `(a AND b) OR (c)` without raw SQL.
+     */
+    public function addConditionGroup(ConditionGroup $group): static
+    {
+        $this->getWhereClause()->addGroup($group);
 
         return $this;
     }

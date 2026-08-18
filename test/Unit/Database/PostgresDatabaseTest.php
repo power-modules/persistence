@@ -66,9 +66,9 @@ final class PostgresDatabaseTest extends TestCase
                 static $count = 0;
                 $count++;
                 if ($count === 1) {
-                    self::assertSame('SET search_path TO "my_schema"', $statement);
+                    self::assertSame('SET search_path TO "my_schema", public', $statement);
                 } elseif ($count === 2) {
-                    self::assertSame('SET search_path TO "other_schema"', $statement);
+                    self::assertSame('SET search_path TO "other_schema", public', $statement);
                 }
 
                 return 0;
@@ -89,7 +89,7 @@ final class PostgresDatabaseTest extends TestCase
         // Two identical SET statements — cache was invalidated by rollBack
         $pdo->expects(self::exactly(2))
             ->method('exec')
-            ->with('SET search_path TO "my_schema"')
+            ->with('SET search_path TO "my_schema", public')
             ->willReturn(0);
 
         $database = new PostgresDatabase($pdo, $transactionManager);

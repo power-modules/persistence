@@ -77,6 +77,18 @@ final readonly class ColumnDefinition
         return new self((string)$name->value, ColumnType::Bigint, null, true, $length);
     }
 
+    public static function boolean(
+        BackedEnum $name,
+    ): self {
+        return new self((string)$name->value, ColumnType::Boolean, null, true);
+    }
+
+    public static function doublePrecision(
+        BackedEnum $name,
+    ): self {
+        return new self((string)$name->value, ColumnType::DoublePrecision, null, true);
+    }
+
     public static function date(
         BackedEnum $name,
     ): self {

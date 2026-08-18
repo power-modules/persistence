@@ -6,6 +6,8 @@ namespace Modular\Persistence\Schema\Definition;
 
 enum ColumnType
 {
+    case Boolean;
+    case DoublePrecision;
     case Bigint;
     case Date;
     case Decimal;
@@ -23,6 +25,8 @@ enum ColumnType
     public function getDbType(): string
     {
         return match ($this) {
+            self::Boolean => 'BOOLEAN',
+            self::DoublePrecision => 'DOUBLE PRECISION',
             self::Bigint => 'BIGINT',
             self::Date => 'DATE',
             self::Decimal => 'DECIMAL',
