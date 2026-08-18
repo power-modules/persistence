@@ -8,6 +8,7 @@ trait TStandardIdentity
 {
     public function getId(mixed $entity): int|string|null
     {
+        // @phpstan-ignore-next-line
         return $entity->id ?? null;
     }
 
